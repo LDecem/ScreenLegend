@@ -9,6 +9,19 @@ ScreenLegend 把它变成：**取色 → 输入名称 → 悬浮窗盖在地图�
 
 > 上图：图例以小窗形式浮在地图上，无标题栏、无按钮，区域截图时只有图例本身。
 
+## 演示（33 秒）
+
+<img src="docs/demo.gif" width="820" alt="演示：在 GIS 地图上编辑图例，浮窗实时跟随">
+
+> 在 GIS 软件里取色 → 编辑分类 → 图例浮窗实时跟随 → 关掉编辑器，浮窗继续盖在地图上，直接区域截图。
+> 完整视频：[`demo/demo.mp4`](demo/demo.mp4)
+
+## 在线试用
+
+**https://ldecem.github.io/ScreenLegend/**
+
+可以直接在浏览器里编辑图例、取色、导出 PNG（配置存在你自己的浏览器里）。置顶悬浮窗是本地程序，需要下载桌面版运行。
+
 ## 下载
 
 前往 [Releases](https://github.com/LDecem/ScreenLegend/releases/latest) 下载 `ScreenLegend-v1.0.0.zip`，解压后双击 **`启动.bat`** 即可，**无需安装**。
