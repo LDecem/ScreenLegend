@@ -43,19 +43,13 @@ public class SLOverlay {
 }
 
 public class SLOverlayWindow : NativeWindow {
-    public Func<int, int, bool> HitOpaque;   // (clientX, clientY) -> translucent or opaque
     public Action RightClicked;
 
     protected override void WndProc(ref Message m) {
         if (m.Msg == 0x0084) {              // WM_NCHITTEST
             base.WndProc(ref m);
-            if ((int)m.Result == 1 && HitOpaque != null) {   // HTCLIENT
-                SLOverlay.POINT p;
-                p.X = (short)((long)m.LParam & 0xFFFF);
-                p.Y = (short)(((long)m.LParam >> 16) & 0xFFFF);
-                SLOverlay.ScreenToClient(Handle, ref p);     // lParam is in screen coordinates
-                m.Result = HitOpaque(p.X, p.Y) ? (IntPtr)2 : (IntPtr)(-1);  // HTCAPTION / HTTRANSPARENT
-            }
+            /* the whole card is a drag handle, transparent pixels included */
+            if ((int)m.Result == 1) m.Result = (IntPtr)2;   // HTCAPTION
             return;
         }
         if (m.Msg == 0x0205 || m.Msg == 0x00A5) {   // WM_RBUTTONUP / WM_NCRBUTTONUP
@@ -153,16 +147,6 @@ $ex = [SLOverlay]::GetWindowLong($script:hwnd, -20)
 $script:showing = $false
 $script:curBmp = $null
 
-function Bmp-Opaque([int]$x, [int]$y) {
-    if (-not $script:curBmp) { return $true }
-    if ($x -lt 0 -or $y -lt 0 -or $x -ge $script:curBmp.Width -or $y -ge $script:curBmp.Height) { return $false }
-    try {
-        return ($script:curBmp.GetPixel($x, $y).A -gt 24)
-    } catch {
-        return $true
-    }
-}
-
 function Paint-Overlay([System.Drawing.Bitmap]$bmp, [int]$x, [int]$y) {
     $screenDc = [SLOverlay]::GetDC([IntPtr]::Zero)
     $memDc = [SLOverlay]::CreateCompatibleDC($screenDc)
@@ -223,7 +207,6 @@ function Hide-Overlay() {
 }
 
 $hit = New-Object SLOverlayWindow
-$hit.HitOpaque = { param($x, $y) return (Bmp-Opaque $x $y) }
 $hit.RightClicked = { Hide-Overlay }
 $hit.AssignHandle($script:hwnd)
 

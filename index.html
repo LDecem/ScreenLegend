@@ -553,6 +553,10 @@ body.pip-body.no-fit #pip-root {
           </select>
         </label>
         <label class="field">
+          <span>浮窗不透明度 <output id="floatOpacityOut"></output></span>
+          <input type="range" id="floatOpacityRange" min="20" max="100" step="5">
+        </label>
+        <label class="field">
           <span>背景色</span>
           <input type="color" id="bgColorInput">
         </label>
@@ -615,7 +619,7 @@ body.pip-body.no-fit #pip-root {
       <li>需要“背景全透明”时，勾选 <strong>导出透明背景</strong>，导出 PNG，再用 PixPin/ShareX 贴图置顶。</li>
     </ol>
     <p class="note">
-      图例会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：拖动可移动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
+      图例会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗不透明度」只影响浮窗本身。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
     </div>
@@ -662,6 +666,7 @@ body.pip-body.no-fit #pip-root {
         border: true,
         transparentExport: false,
         exportScale: 2,
+        floatOpacity: 1,
         fitPip: true
       }
     };
@@ -715,6 +720,7 @@ body.pip-body.no-fit #pip-root {
         border: op.border !== false,
         transparentExport: op.transparentExport === true,
         exportScale: [1, 2, 3].indexOf(Number(op.exportScale)) >= 0 ? Number(op.exportScale) : 2,
+        floatOpacity: clampInt(Math.round(Number(op.floatOpacity) * 100), 20, 100, 100) / 100,
         fitPip: op.fitPip !== false
       }
     };
@@ -899,6 +905,9 @@ body.pip-body.no-fit #pip-root {
     $('swatchSizeRange').value = String(state.options.swatchSize);
     $('swatchSizeOut').textContent = state.options.swatchSize + 'px';
     $('exportScaleSel').value = String(state.options.exportScale);
+    var opacityPct = Math.round((state.options.floatOpacity || 1) * 100);
+    $('floatOpacityRange').value = String(opacityPct);
+    $('floatOpacityOut').textContent = opacityPct + '%';
     $('bgColorInput').value = state.options.background;
     $('fgColorInput').value = state.options.textColor;
     $('borderChk').checked = state.options.border;
@@ -1338,6 +1347,7 @@ body.pip-body.no-fit #pip-root {
   var BRIDGE_PORT = 8777;
   var overlayShowing = false;
   var overlayTimer = 0;
+  var overlayPoll = 0;
 
   function bridgeUrl(path) {
     return 'http://127.0.0.1:' + BRIDGE_PORT + path;
@@ -1356,6 +1366,21 @@ body.pip-body.no-fit #pip-root {
       items: state.items,
       options: opts
     }, scale);
+    /* Windows ignores mouse input over fully transparent pixels of a layered
+       window, so an alpha=0 background could not be used to drag the card.
+       Lift those pixels to alpha=1: invisible to the eye, but grabbable.
+       The same pass applies the "float opacity" slider. */
+    var opacity = state.options.floatOpacity;
+    if (opacity == null) opacity = 1;
+    var g = cnv.getContext('2d');
+    var img = g.getImageData(0, 0, cnv.width, cnv.height);
+    var data = img.data;
+    for (var i = 3; i < data.length; i += 4) {
+      var a = data[i];
+      if (opacity < 1) a = Math.round(a * opacity);
+      data[i] = a > 0 ? a : 1;
+    }
+    g.putImageData(img, 0, 0);
     var url = cnv.toDataURL('image/png');
     return url.slice(url.indexOf(',') + 1);
   }
@@ -1375,8 +1400,39 @@ body.pip-body.no-fit #pip-root {
 
   function closeOverlay() {
     overlayShowing = false;
+    stopOverlayPoll();
     updateFloatButton();
     postOverlay(false).catch(function () { /* helper may already be gone */ });
+  }
+
+  /* The card can be closed from its own right-click menu, so keep an eye on the
+     helper and restore the button state when the window disappears. */
+  function stopOverlayPoll() {
+    if (overlayPoll) {
+      window.clearInterval(overlayPoll);
+      overlayPoll = 0;
+    }
+  }
+
+  function startOverlayPoll() {
+    stopOverlayPoll();
+    overlayPoll = window.setInterval(function () {
+      if (!overlayShowing) { stopOverlayPoll(); return; }
+      fetch(bridgeUrl('/state'), { cache: 'no-store' }).then(function (res) {
+        return res.json();
+      }).then(function (info) {
+        if (info && info.showing === false && overlayShowing) {
+          overlayShowing = false;
+          stopOverlayPoll();
+          updateFloatButton();
+        }
+      }).catch(function () {
+        /* helper gone: treat the overlay as closed */
+        overlayShowing = false;
+        stopOverlayPoll();
+        updateFloatButton();
+      });
+    }, 900);
   }
 
   function refreshOverlay() {
@@ -1395,6 +1451,7 @@ body.pip-body.no-fit #pip-root {
     postOverlay(true).then(function () {
       overlayShowing = true;
       updateFloatButton();
+      startOverlayPoll();
       toast('已置顶显示图例：拖动可移动，右键可关闭。');
     }).catch(function () {
       /* helper not running (e.g. index.html opened directly) — use the browser fallback */
@@ -1456,7 +1513,11 @@ body.pip-body.no-fit #pip-root {
     dst.height = src.height;
     var g = dst.getContext('2d');
     g.clearRect(0, 0, dst.width, dst.height);
+    var opacity = state.options.floatOpacity;
+    if (opacity == null) opacity = 1;
+    g.globalAlpha = Math.max(0.05, Math.min(1, opacity));
     g.drawImage(src, 0, 0);
+    g.globalAlpha = 1;
     if (pushFrame) {
       var track = vpipStream && vpipStream.getVideoTracks()[0];
       if (track && track.requestFrame) track.requestFrame();
@@ -1722,6 +1783,13 @@ body.pip-body.no-fit #pip-root {
     on('swatchSizeRange', 'input', function (e) {
       state.options.swatchSize = Number(e.target.value);
       $('swatchSizeOut').textContent = state.options.swatchSize + 'px';
+      renderOutputs();
+      saveState();
+    });
+    on('floatOpacityRange', 'input', function (e) {
+      var pct = Number(e.target.value);
+      state.options.floatOpacity = pct / 100;
+      $('floatOpacityOut').textContent = pct + '%';
       renderOutputs();
       saveState();
     });
