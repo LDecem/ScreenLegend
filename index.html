@@ -939,6 +939,22 @@ body.pip-body.no-fit #pip-root {
 
   function renderRows() {
     if (!rowsEl) return;
+    /* Rebuilding the list replaces the focused <input>, which also drops the
+       OS IME context (typing Chinese then stops working until the window is
+       reactivated). Remember where the caret was and put it back. */
+    var snap = null;
+    var active = document.activeElement;
+    if (active && rowsEl.contains(active) && active.closest) {
+      var activeRow = active.closest('.row');
+      if (activeRow) {
+        snap = {
+          id: activeRow.getAttribute('data-id'),
+          cls: (active.className || '').split(' ')[0],
+          start: active.selectionStart,
+          end: active.selectionEnd
+        };
+      }
+    }
     if (!state.items.length) {
       rowsEl.innerHTML = '<div class="rows-empty">还没有分类。点击「取色并添加」，在地图上点一下即可开始。</div>';
       return;
@@ -956,7 +972,58 @@ body.pip-body.no-fit #pip-root {
         '<button type="button" class="icon-btn del" data-act="del" title="删除">×</button>' +
         '</div></div>';
     }).join('');
+    if (snap) {
+      window.requestAnimationFrame(function () {
+        var row = findRow(snap.id);
+        if (!row) return;
+        var el = row.querySelector('.' + snap.cls);
+        if (!el) return;
+        focusLabelInput(el);
+        if (snap.start != null) {
+          try { el.setSelectionRange(snap.start, snap.end); } catch (e) { /* ignore */ }
+        }
+      });
+    }
   }
+
+  /* Focusing an input right after the EyeDropper overlay closes — or right
+     after the row list was rebuilt — can leave the OS IME detached: typing
+     produces nothing until the window is deactivated and activated again.
+     Focus, verify the window really owns the keyboard, and retry shortly. */
+  var pendingFocusInput = null;
+
+  function focusLabelInput(input) {
+    if (!input) return;
+    pendingFocusInput = input;
+    var tries = 0;
+    (function attempt() {
+      tries++;
+      if (!document.hasFocus()) {
+        try { window.focus(); } catch (e) { /* ignore */ }
+      }
+      try { input.focus(); } catch (e) { /* ignore */ }
+      var ok = document.hasFocus() && document.activeElement === input;
+      if (!ok && tries < 10) {
+        window.setTimeout(attempt, 120);
+        return;
+      }
+      pendingFocusInput = null;
+      var len = input.value.length;
+      try {
+        if (!len) input.select();
+        else input.setSelectionRange(len, len);
+      } catch (e) { /* ignore */ }
+    })();
+  }
+
+  /* when the window finally becomes active again, finish a pending focus */
+  window.addEventListener('focus', function () {
+    if (!pendingFocusInput) return;
+    var el = pendingFocusInput;
+    window.setTimeout(function () {
+      if (el && el.isConnected) focusLabelInput(el);
+    }, 40);
+  });
 
   function renderPreview() {
     if (!previewRoot) return;
@@ -1145,7 +1212,7 @@ body.pip-body.no-fit #pip-root {
       window.requestAnimationFrame(function () {
         var row = findRow(item.id);
         var input = row && row.querySelector('.label-input');
-        if (input) { input.focus(); input.select(); }
+        focusLabelInput(input);
       });
     }
   }
@@ -1892,6 +1959,18 @@ body.pip-body.no-fit #pip-root {
     }
 
     if (rowsEl) {
+      /* Edge app windows occasionally keep the IME attached to the previous
+         window even though the page has focus; clicking back into a field is
+         the natural moment to hand the keyboard back to this window. */
+      rowsEl.addEventListener('focusin', function (e) {
+        var el = e.target;
+        if (!el || !el.classList) return;
+        if (!el.classList.contains('label-input') && !el.classList.contains('hex-input')) return;
+        if (!document.hasFocus()) {
+          try { window.focus(); } catch (err) { /* ignore */ }
+        }
+      });
+
       rowsEl.addEventListener('click', function (e) {
         var row = e.target.closest('.row');
         if (!row) return;

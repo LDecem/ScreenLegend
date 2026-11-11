@@ -136,9 +136,9 @@ $script:form.StartPosition = 'Manual'
 $script:form.Text = 'ScreenLegendOverlay'
 $script:form.Width = 8
 $script:form.Height = 8
-$script:form.Show()
-$script:form.Hide()
 
+# reading Handle creates the window without ever showing it, so starting the
+# helper cannot steal the foreground (and the IME) from the editor
 $script:hwnd = $script:form.Handle
 $ex = [SLOverlay]::GetWindowLong($script:hwnd, -20)
 # layered + tool window + no-activate (never steals focus from the map app)
@@ -196,8 +196,11 @@ function Show-Overlay([System.Drawing.Bitmap]$bmp, [bool]$reposition) {
         $y = $pos[1]
     }
     Paint-Overlay $bmp $x $y
-    $script:form.Show()
-    [SLOverlay]::SetWindowPos($script:hwnd, [IntPtr](-1), 0, 0, 0, 0, 0x0003) | Out-Null   # stay topmost
+    # Showing / re-z-ordering the overlay must never activate it: stealing the
+    # foreground would detach the editor's IME (Chinese input stops working
+    # until the window is activated again).
+    if (-not $script:showing) { $script:form.Show() }
+    [SLOverlay]::SetWindowPos($script:hwnd, [IntPtr](-1), 0, 0, 0, 0, 0x0013) | Out-Null   # NOSIZE|NOMOVE|NOACTIVATE
     $script:showing = $true
 }
 
