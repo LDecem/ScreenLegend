@@ -5,6 +5,22 @@
 传统做法是：截图 → Photoshop 取色 → 画图例 → 拼图。
 ScreenLegend 把它变成：**取色 → 输入名称 → 悬浮窗盖在地图上 → 区域截图**。
 
+<img src="docs/screenshot-overlay.png" width="820" alt="图例悬浮在地图上">
+
+> 上图：图例以小窗形式浮在地图上，无标题栏、无按钮，区域截图时只有图例本身。
+
+## 下载
+
+前往 [Releases](https://github.com/LDecem/ScreenLegend/releases/latest) 下载 `ScreenLegend-v1.0.0.zip`，解压后双击 **`启动.bat`** 即可，**无需安装**。
+
+也可以直接克隆本仓库（只要 `index.html` + `启动.bat` + `tools/` 三个东西就能跑）。
+
+## 界面
+
+<img src="docs/screenshot-editor.png" width="820" alt="编辑器界面">
+
+左边编辑图例（取色、名称、HEX、排序、列数、字号、色块、配色、浮窗不透明度），右边实时预览，一键导出 PNG。
+
 ## 快速开始
 
 1. 双击 `启动.bat`：打开编辑器的同时，会在后台启动一个不可见的小程序（负责画置顶浮窗）。
