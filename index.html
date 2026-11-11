@@ -461,9 +461,25 @@ body.pip-body.no-fit #pip-root {
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01ms !important; }
 }
+/* GitHub Pages build: say that the floating window needs the local launcher */
+.online-note {
+  display: none;
+  padding: 9px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #7a5a17;
+  background: #fff8e6;
+  border-bottom: 1px solid #f0dfb4;
+}
+.online-note.show { display: block; }
+.online-note a { color: #8a5a00; font-weight: 600; }
 </style>
 </head>
 <body>
+<div class="online-note" id="onlineNote" role="note">
+  <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动置顶”会使用浏览器画中画。
+  <a href="https://github.com/LDecem/ScreenLegend/releases/latest" target="_blank" rel="noopener">下载本地版</a>
+</div>
 <header class="app-header">
   <div class="brand">
     <div class="brand-mark" aria-hidden="true">SL</div>
@@ -1075,6 +1091,11 @@ body.pip-body.no-fit #pip-root {
   }
 
   function init() {
+    /* the GitHub Pages build cannot start the local overlay helper */
+    if (/(^|\.)github\.io$/i.test(location.hostname)) {
+      var note = $('onlineNote');
+      if (note) note.className = 'online-note show';
+    }
     updateSupportUI();
     updateFloatButton();
     /* the "auto scale" switch only matters for the document-PiP fallback */
