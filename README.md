@@ -23,9 +23,23 @@ ScreenLegend 把它变成：**取色 → 输入名称 → 悬浮窗盖在地图�
 
 ## 下载
 
-前往 [Releases](https://github.com/LDecem/ScreenLegend/releases/latest) 下载 `ScreenLegend-v1.0.0.zip`，解压后双击 **`启动.bat`** 即可，**无需安装**。
+前往 [Releases](https://github.com/LDecem/ScreenLegend/releases/latest) 下载最新的 `ScreenLegend-v1.0.1.zip`，解压后双击 **`启动.bat`** 即可，**无需安装**。
 
 也可以直接克隆本仓库（只要 `index.html` + `启动.bat` + `tools/` 三个东西就能跑）。
+
+<details>
+<summary>更新日志</summary>
+
+**v1.0.1**
+- 修复：中文输入法偶尔调不出来的问题
+  - 置顶浮窗重绘时不再抢前台焦点（`SWP_NOACTIVATE`），IME 上下文不会再被打断
+  - 取色器关闭后自动聚焦更可靠（等待窗口真正拿回键盘再聚焦）
+  - 分类列表重建后保留焦点与光标位置
+
+**v1.0.0**
+- 首个版本：无边框置顶浮窗、全屏取色、图例编辑、PNG 导出、浮窗不透明度、透明背景
+
+</details>
 
 ## 界面
 
