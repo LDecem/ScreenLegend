@@ -174,11 +174,14 @@ button { -webkit-tap-highlight-color: transparent; }
 .swatch {
   width: 30px; height: 30px;
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, .12);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
   border-radius: 7px;
   cursor: crosshair;
   transition: outline-color .15s ease;
 }
+.swatch svg { display: block; width: 100%; height: 100%; }
 .swatch:hover { outline: 2px solid rgba(15, 118, 110, .3); outline-offset: 1px; }
 .swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .label-input, .hex-input, .field input[type="text"], .field select {
@@ -216,6 +219,50 @@ button { -webkit-tap-highlight-color: transparent; }
 .icon-btn:hover { color: var(--ink); background: #eef2f5; }
 .icon-btn.del:hover { color: #b91c1c; background: #fef2f2; }
 .icon-btn:disabled { opacity: .25; cursor: default; background: transparent; }
+.icon-btn.style-toggle.active { color: var(--accent-strong); background: var(--accent-soft); }
+.icon-btn.style-toggle svg { width: 14px; height: 14px; }
+
+/* ---------- per-item style panel ---------- */
+.row.open { background: #fbfcfd; border-color: var(--line); }
+.style-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.style-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.style-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.style-range { width: 88px; accent-color: var(--accent); }
+.style-range:disabled { opacity: .4; }
+.style-out { min-width: 36px; font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.seg { display: inline-flex; gap: 2px; padding: 2px; background: #eef2f5; border-radius: 7px; }
+.seg-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg-btn:hover { color: var(--ink); }
+.seg-btn.active { color: var(--ink); background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .12); }
+.seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mini-swatch {
+  width: 26px; height: 26px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, .12);
+  border-radius: 6px;
+  cursor: crosshair;
+}
+.mini-swatch:hover { outline: 2px solid rgba(15, 118, 110, .3); outline-offset: 1px; }
+.style-panel .hex-input { width: 92px; min-height: 28px; padding: 3px 8px; font-size: 12px; }
 /* ---------- options ---------- */
 .options, .more {
   margin-top: 14px;
@@ -407,9 +454,9 @@ dialog::backdrop { background: rgba(15, 23, 42, .38); backdrop-filter: blur(2px)
   width: var(--swatch-size);
   height: var(--swatch-size);
   flex: 0 0 auto;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px var(--ring, rgba(0, 0, 0, .22));
+  display: block;
 }
+.legend-swatch svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .legend-label {
   font-size: var(--label-size);
   line-height: 1.3;
@@ -457,6 +504,9 @@ body.pip-body.no-fit #pip-root {
   .options-grid { grid-template-columns: 1fr; }
   .row { grid-template-columns: 32px minmax(0, 1fr) 72px auto; }
   .preview-stage { padding: 16px; }
+  .style-range { width: 64px; }
+  .style-panel .hex-input { width: 82px; }
+  .style-out { min-width: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01ms !important; }
@@ -557,7 +607,7 @@ body.pip-body.no-fit #pip-root {
           <input type="range" id="labelSizeRange" min="11" max="20" step="1">
         </label>
         <label class="field">
-          <span>色块大小 <output id="swatchSizeOut"></output></span>
+          <span>符号大小 <output id="swatchSizeOut"></output></span>
           <input type="range" id="swatchSizeRange" min="14" max="30" step="1">
         </label>
         <label class="field">
@@ -635,6 +685,8 @@ body.pip-body.no-fit #pip-root {
       <li>需要“背景全透明”时，勾选 <strong>导出透明背景</strong>，导出 PNG，再用 PixPin/ShareX 贴图置顶。</li>
     </ol>
     <p class="note">
+      每行右侧的<strong>滑块按钮</strong>可以打开「图例样式」：切换面型 / 线型，调整线宽、实线 / 虚线 / 点划线以及虚线间距；面型还可以单独设置边框颜色。线型和边框颜色都能用取色器或 HEX 修改。</p>
+    <p class="note">
       图例会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗不透明度」只影响浮窗本身。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
@@ -650,17 +702,21 @@ body.pip-body.no-fit #pip-root {
   const ITEM_GAP = 8;
   const FONT_STACK = '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif';
   const PALETTE = ['#8fbf6a', '#4e8b5a', '#d8a48c', '#83b6d8', '#b8b8b8', '#e5c07b', '#c678dd', '#56b6c2'];
+  const STROKE_STYLES = ['solid', 'dashed', 'dashdot'];
+  const STYLE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+    '<path d="M4 7h8M16 7h4M4 17h4M12 17h8"/><circle cx="14" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
   const DEFAULT_ITEMS = [
     { color: '#a9c97e', label: '耕地' },
     { color: '#4e8b5a', label: '林地' },
     { color: '#d8a48c', label: '建设用地' },
     { color: '#83b6d8', label: '水域' },
-    { color: '#b8b8b8', label: '道路' }
+    { color: '#b8b8b8', label: '道路', type: 'line', strokeWidth: 2 }
   ];
 
   let state = loadState();
   let pipWindow = null;
   let toastTimer = 0;
+  let styleOpenId = null;
 
   /* ---------------- state ---------------- */
 
@@ -672,7 +728,7 @@ body.pip-body.no-fit #pip-root {
     return {
       title: '图例',
       showTitle: true,
-      items: DEFAULT_ITEMS.map(function (it) { return { id: makeId(), color: it.color, label: it.label }; }),
+      items: DEFAULT_ITEMS.map(makeItem),
       options: {
         columns: 1,
         labelSize: 14,
@@ -694,12 +750,68 @@ body.pip-body.no-fit #pip-root {
     return Math.min(max, Math.max(min, Math.round(n)));
   }
 
+  function clampNum(value, min, max, fallback, step) {
+    var n = Number(value);
+    if (!isFinite(n)) return fallback;
+    n = Math.min(max, Math.max(min, n));
+    if (step) n = Math.round(n / step) * step;
+    return Math.round(n * 100) / 100;
+  }
+
   function normalizeHex(value) {
     if (typeof value !== 'string') return null;
     var s = value.trim().replace(/^#/, '');
     if (/^[0-9a-f]{3}$/i.test(s)) s = s.split('').map(function (c) { return c + c; }).join('');
     if (!/^[0-9a-f]{6}$/i.test(s)) return null;
     return '#' + s.toLowerCase();
+  }
+
+  /* Mix a colour towards black (amount < 0) or white (amount > 0). Used for the
+     default outline of a fill item: a darker version of the fill colour. */
+  function shadeHex(value, amount) {
+    var c = normalizeHex(value) || '#cccccc';
+    var target = amount < 0 ? 0 : 255;
+    var ratio = Math.min(1, Math.abs(Number(amount) || 0));
+    var out = [1, 3, 5].map(function (i) {
+      var v = parseInt(c.slice(i, i + 2), 16);
+      return Math.round(v + (target - v) * ratio);
+    });
+    return '#' + out.map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  /* One dash pattern for SVG, CSS and the canvas renderer, so the editor
+     preview, the floating window and the exported PNG all look the same.
+     Pattern lengths grow with the stroke width, which is how GIS legends
+     usually draw dashed symbol lines. */
+  function dashPattern(style, width, scale) {
+    if (style !== 'dashed' && style !== 'dashdot') return [];
+    var unit = Math.min(3, Math.max(1, Number(width) || 1)) * Math.max(0.2, Number(scale) || 1);
+    if (style === 'dashed') return [3 * unit, 2 * unit];
+    return [3 * unit, 1.8 * unit, 0.8 * unit, 1.8 * unit];
+  }
+
+  function dashAttr(style, width, scale) {
+    var pattern = dashPattern(style, width, scale);
+    if (!pattern.length) return '';
+    return ' stroke-dasharray="' + pattern.map(function (n) { return n.toFixed(2); }).join(' ') + '"';
+  }
+
+  function makeItem(source) {
+    source = (source && typeof source === 'object') ? source : {};
+    var color = normalizeHex(source.color) || '#cccccc';
+    var type = source.type === 'line' ? 'line' : 'fill';
+    var minWidth = type === 'line' ? 1 : 0;
+    var fallbackWidth = type === 'line' ? 2 : 0;
+    return {
+      id: makeId(),
+      color: color,
+      label: source.label == null ? '' : String(source.label),
+      type: type,
+      stroke: normalizeHex(source.stroke) || shadeHex(color, -0.3),
+      strokeWidth: clampNum(source.strokeWidth, minWidth, 6, fallbackWidth, 0.5),
+      strokeStyle: STROKE_STYLES.indexOf(source.strokeStyle) >= 0 ? source.strokeStyle : 'solid',
+      dashScale: clampNum(source.dashScale, 0.6, 2.4, 1, 0.2)
+    };
   }
 
   function normalizeState(raw) {
@@ -714,11 +826,9 @@ body.pip-body.no-fit #pip-root {
         var id = String(it.id || makeId());
         if (seen[id]) id = makeId();
         seen[id] = true;
-        return {
-          id: id,
-          color: normalizeHex(it.color) || '#cccccc',
-          label: String(it.label == null ? '' : it.label)
-        };
+        var item = makeItem(it);
+        item.id = id;
+        return item;
       });
     } else {
       items = d.items;
@@ -850,6 +960,87 @@ body.pip-body.no-fit #pip-root {
     ].join(';');
   }
 
+  /* Inline SVG preview of one legend symbol. The same geometry is drawn on the
+     export canvas by drawSwatch(), so the preview is the export. */
+  function swatchSVG(item, size, opts) {
+    opts = opts || {};
+    var s = Math.max(1, Number(size) || 20);
+    var type = item.type === 'line' ? 'line' : 'fill';
+    var color = normalizeHex(item.color) || '#cccccc';
+    var width = clampNum(item.strokeWidth, 0, 6, type === 'line' ? 2 : 0, 0.5);
+    var stroke = normalizeHex(item.stroke) || shadeHex(color, -0.3);
+    var dash = dashAttr(item.strokeStyle, width || 1, item.dashScale);
+    var body;
+    if (type === 'line') {
+      var lw = Math.max(1, Math.min(width, s - 1));
+      body = '<line x1="0.5" y1="' + (s / 2) + '" x2="' + (s - 0.5) + '" y2="' + (s / 2) + '"' +
+        ' stroke="' + color + '" stroke-width="' + lw + '"' + dash + ' stroke-linecap="butt"/>';
+    } else {
+      var inset = width > 0 ? width / 2 : 0.5;
+      var r = Math.max(1.5, Math.round(s * 0.12));
+      var edge = width > 0
+        ? ' stroke="' + stroke + '" stroke-width="' + width + '"' + dash
+        : ' stroke="' + ringFor(color, opts.background || '#ffffff') + '" stroke-width="1"';
+      body = '<rect x="' + inset.toFixed(2) + '" y="' + inset.toFixed(2) + '"' +
+        ' width="' + (s - inset * 2).toFixed(2) + '" height="' + (s - inset * 2).toFixed(2) + '"' +
+        ' rx="' + r + '" fill="' + color + '"' + edge + '/>';
+    }
+    return '<svg viewBox="0 0 ' + s + ' ' + s + '" width="' + s + '" height="' + s + '"' +
+      ' aria-hidden="true" focusable="false">' + body + '</svg>';
+  }
+
+  function segBtn(act, value, text, active) {
+    return '<button type="button" class="seg-btn' + (active ? ' active' : '') + '"' +
+      ' data-act="' + act + '" data-value="' + value + '"' +
+      ' aria-pressed="' + (active ? 'true' : 'false') + '">' + text + '</button>';
+  }
+
+  function stylePanelHTML(item) {
+    var type = item.type === 'line' ? 'line' : 'fill';
+    var minWidth = type === 'line' ? 1 : 0;
+    var width = clampNum(item.strokeWidth, minWidth, 6, type === 'line' ? 2 : 0, 0.5);
+    var style = STROKE_STYLES.indexOf(item.strokeStyle) >= 0 ? item.strokeStyle : 'solid';
+    var scale = clampNum(item.dashScale, 0.6, 2.4, 1, 0.2);
+    var dashDisabled = style === 'solid' ? ' disabled' : '';
+    var stroke = normalizeHex(item.stroke) || shadeHex(item.color, -0.3);
+    var widthText = width > 0 ? width + 'px' : '无';
+    return '<div class="style-panel">' +
+      '<div class="style-row">' +
+        '<span class="style-label">类型</span>' +
+        '<div class="seg" role="group" aria-label="图例类型">' +
+          segBtn('set-type', 'fill', '面型', type === 'fill') +
+          segBtn('set-type', 'line', '线型', type === 'line') +
+        '</div>' +
+        '<span class="style-label">' + (type === 'line' ? '线宽' : '边框粗细') + '</span>' +
+        '<input class="style-range" type="range" data-prop="strokeWidth" min="' + minWidth + '" max="6" step="0.5"' +
+          ' value="' + width + '" aria-label="线宽">' +
+        '<output class="style-out" data-out="strokeWidth">' + widthText + '</output>' +
+      '</div>' +
+      '<div class="style-row">' +
+        '<span class="style-label">' + (type === 'line' ? '线型' : '边框线型') + '</span>' +
+        '<div class="seg" role="group" aria-label="线型">' +
+          segBtn('set-style', 'solid', '实线', style === 'solid') +
+          segBtn('set-style', 'dashed', '虚线', style === 'dashed') +
+          segBtn('set-style', 'dashdot', '点划线', style === 'dashdot') +
+        '</div>' +
+        '<span class="style-label">间距</span>' +
+        '<input class="style-range" type="range" data-prop="dashScale" min="0.6" max="2.4" step="0.2"' +
+          ' value="' + scale + '" aria-label="虚线间距" title="数值越大，虚线和间隔越长"' + dashDisabled + '>' +
+        '<output class="style-out" data-out="dashScale">' + scale.toFixed(1) + '×</output>' +
+      '</div>' +
+      (type === 'fill'
+        ? '<div class="style-row">' +
+            '<span class="style-label">边框色</span>' +
+            '<button type="button" class="mini-swatch" data-act="pick-stroke" title="点击全屏取边框色"' +
+              ' style="background:' + stroke + '" aria-label="全屏取边框色"></button>' +
+            '<input class="hex-input border-hex" data-prop="stroke" type="text" value="' + stroke + '"' +
+              ' maxlength="7" spellcheck="false" autocomplete="off" aria-label="边框颜色">' +
+            '<span class="style-label">填充色用左侧色块修改</span>' +
+          '</div>'
+        : '') +
+      '</div>';
+  }
+
   function legendHTML(s, opts) {
     opts = opts || {};
     var m = metrics(s);
@@ -860,10 +1051,8 @@ body.pip-body.no-fit #pip-root {
       ? '<div class="legend-title">' + esc(s.title) + '</div>'
       : '';
     var items = s.items.map(function (it) {
-      var color = normalizeHex(it.color) || '#cccccc';
-      var ring = ringFor(color, s.options.background);
       return '<div class="legend-item">' +
-        '<span class="legend-swatch" style="background:' + color + ';--ring:' + ring + '"></span>' +
+        '<span class="legend-swatch">' + swatchSVG(it, m.swatch, { background: s.options.background }) + '</span>' +
         '<span class="legend-label">' + esc(it.label || '未命名') + '</span>' +
         '</div>';
     }).join('');
@@ -941,7 +1130,7 @@ body.pip-body.no-fit #pip-root {
     if (!rowsEl) return;
     /* Rebuilding the list replaces the focused <input>, which also drops the
        OS IME context (typing Chinese then stops working until the window is
-       reactivated). Remember where the caret was and put it back. */
+       reactivated). Remember which control had focus and put it back. */
     var snap = null;
     var active = document.activeElement;
     if (active && rowsEl.contains(active) && active.closest) {
@@ -949,7 +1138,7 @@ body.pip-body.no-fit #pip-root {
       if (activeRow) {
         snap = {
           id: activeRow.getAttribute('data-id'),
-          cls: (active.className || '').split(' ')[0],
+          sel: focusSelector(active),
           start: active.selectionStart,
           end: active.selectionEnd
         };
@@ -960,30 +1149,59 @@ body.pip-body.no-fit #pip-root {
       return;
     }
     rowsEl.innerHTML = state.items.map(function (it, idx) {
-      var color = normalizeHex(it.color) || '#cccccc';
       var last = state.items.length - 1;
-      return '<div class="row" data-id="' + esc(it.id) + '">' +
-        '<button type="button" class="swatch" data-act="pick" style="background:' + color + '" title="点击全屏取色" aria-label="为「' + esc(it.label || '未命名') + '」取色"></button>' +
+      var open = styleOpenId === it.id;
+      return '<div class="row' + (open ? ' open' : '') + '" data-id="' + esc(it.id) + '">' +
+        '<button type="button" class="swatch" data-act="pick" title="点击全屏取色" aria-label="为「' + esc(it.label || '未命名') + '」取色">' +
+          swatchSVG(it, 30, { background: '#ffffff' }) +
+        '</button>' +
         '<input class="label-input" type="text" value="' + esc(it.label) + '" placeholder="分类名称" aria-label="分类名称" maxlength="40">' +
-        '<input class="hex-input" type="text" value="' + color + '" aria-label="颜色值" maxlength="7" spellcheck="false" autocomplete="off">' +
+        '<input class="hex-input" type="text" value="' + (normalizeHex(it.color) || '#cccccc') + '" aria-label="颜色值" maxlength="7" spellcheck="false" autocomplete="off">' +
         '<div class="row-actions">' +
+        '<button type="button" class="icon-btn style-toggle' + (open ? ' active' : '') + '" data-act="style" title="图例样式（类型 / 线宽 / 虚线）" aria-expanded="' + (open ? 'true' : 'false') + '">' + STYLE_ICON + '</button>' +
         '<button type="button" class="icon-btn" data-act="up" title="上移" ' + (idx === 0 ? 'disabled' : '') + '>↑</button>' +
         '<button type="button" class="icon-btn" data-act="down" title="下移" ' + (idx === last ? 'disabled' : '') + '>↓</button>' +
         '<button type="button" class="icon-btn del" data-act="del" title="删除">×</button>' +
-        '</div></div>';
+        '</div>' +
+        (open ? stylePanelHTML(it) : '') +
+        '</div>';
     }).join('');
-    if (snap) {
+    if (snap && snap.sel) {
       window.requestAnimationFrame(function () {
         var row = findRow(snap.id);
         if (!row) return;
-        var el = row.querySelector('.' + snap.cls);
+        var el = row.querySelector(snap.sel);
         if (!el) return;
-        focusLabelInput(el);
-        if (snap.start != null) {
-          try { el.setSelectionRange(snap.start, snap.end); } catch (e) { /* ignore */ }
+        if (el.tagName === 'INPUT' && el.type === 'text') {
+          focusLabelInput(el);
+          if (snap.start != null) {
+            window.setTimeout(function () {
+              try { el.setSelectionRange(snap.start, snap.end); } catch (e) { /* ignore */ }
+            }, 0);
+          }
+        } else {
+          try { el.focus(); } catch (e) { /* ignore */ }
         }
       });
     }
+  }
+
+  /* Selector that finds the same control after the row list was rebuilt. */
+  function focusSelector(el) {
+    if (!el) return null;
+    var act = el.getAttribute('data-act');
+    if (act) {
+      var sel = '[data-act="' + act + '"]';
+      var value = el.getAttribute('data-value');
+      if (value) sel += '[data-value="' + value + '"]';
+      return sel;
+    }
+    var prop = el.getAttribute('data-prop');
+    if (prop) return '[data-prop="' + prop + '"]';
+    if (el.classList.contains('label-input')) return '.label-input';
+    if (el.classList.contains('border-hex')) return '.border-hex';
+    if (el.classList.contains('hex-input')) return '.hex-input';
+    return null;
   }
 
   /* Focusing an input right after the EyeDropper overlay closes — or right
@@ -1188,22 +1406,33 @@ body.pip-body.no-fit #pip-root {
     return null;
   }
 
-  function updateRowColor(row, item, syncHex) {
+  function findItem(id) {
+    return state.items.find(function (it) { return it.id === id; }) || null;
+  }
+
+  function updateRowSwatch(row, item) {
     if (!row) return;
     var sw = row.querySelector('.swatch');
-    if (sw) sw.style.background = item.color;
-    if (syncHex) {
-      var hex = row.querySelector('.hex-input');
-      if (hex) hex.value = item.color;
+    if (sw) sw.innerHTML = swatchSVG(item, 30, { background: '#ffffff' });
+    var mini = row.querySelector('.mini-swatch');
+    if (mini) mini.style.background = normalizeHex(item.stroke) || shadeHex(item.color, -0.3);
+    var borderHex = row.querySelector('.border-hex');
+    if (borderHex && document.activeElement !== borderHex) {
+      borderHex.value = normalizeHex(item.stroke) || shadeHex(item.color, -0.3);
     }
   }
 
+  /* A fill item's outline defaults to a darker version of the fill. Keep that
+     link while the user has not picked an explicit outline colour. */
+  function setPrimaryColor(item, color) {
+    var auto = shadeHex(item.color, -0.3);
+    var current = normalizeHex(item.stroke);
+    if (!current || current === auto) item.stroke = shadeHex(color, -0.3);
+    item.color = color;
+  }
+
   function addItem(color, focus) {
-    var item = {
-      id: makeId(),
-      color: normalizeHex(color) || nextColor(),
-      label: ''
-    };
+    var item = makeItem({ color: normalizeHex(color) || nextColor() });
     state.items.push(item);
     renderRows();
     renderOutputs();
@@ -1217,10 +1446,39 @@ body.pip-body.no-fit #pip-root {
     }
   }
 
+  function toggleStylePanel(id) {
+    styleOpenId = styleOpenId === id ? null : id;
+    renderRows();
+  }
+
+  function setItemType(id, type) {
+    var item = findItem(id);
+    if (!item || (type !== 'fill' && type !== 'line')) return;
+    item.type = type;
+    if (type === 'line') {
+      if (!(item.strokeWidth >= 1)) item.strokeWidth = 2;
+    } else {
+      item.strokeWidth = clampNum(item.strokeWidth, 0, 6, 0, 0.5);
+    }
+    renderRows();
+    renderOutputs();
+    saveState();
+  }
+
+  function setItemStrokeStyle(id, style) {
+    var item = findItem(id);
+    if (!item || STROKE_STYLES.indexOf(style) < 0) return;
+    item.strokeStyle = style;
+    renderRows();
+    renderOutputs();
+    saveState();
+  }
+
   function deleteItem(id) {
     var idx = state.items.findIndex(function (it) { return it.id === id; });
     if (idx < 0) return;
     var removed = state.items.splice(idx, 1)[0];
+    if (styleOpenId === id) styleOpenId = null;
     renderRows();
     renderOutputs();
     saveState();
@@ -1256,7 +1514,7 @@ body.pip-body.no-fit #pip-root {
   }
 
   function pickForItem(id) {
-    var item = state.items.find(function (it) { return it.id === id; });
+    var item = findItem(id);
     if (!item) return;
     if (!hasEyeDropper) {
       toast('当前浏览器不支持全屏取色，请直接输入色值。');
@@ -1266,11 +1524,43 @@ body.pip-body.no-fit #pip-root {
     dropper.open().then(function (result) {
       var color = normalizeHex(result && result.sRGBHex);
       if (color) {
-        item.color = color;
-        updateRowColor(findRow(id), item, true);
+        setPrimaryColor(item, color);
+        var row = findRow(id);
+        if (row) {
+          var hex = row.querySelector('.hex-input');
+          if (hex) hex.value = item.color;
+          updateRowSwatch(row, item);
+        }
         renderOutputs();
         saveState();
         toast('已取色 ' + color);
+      }
+    }).catch(function (err) {
+      if (!err || err.name !== 'AbortError') console.error(err);
+    });
+  }
+
+  function pickStrokeForItem(id) {
+    var item = findItem(id);
+    if (!item) return;
+    if (!hasEyeDropper) {
+      toast('当前浏览器不支持全屏取色，请直接输入色值。');
+      return;
+    }
+    var dropper = new window.EyeDropper();
+    dropper.open().then(function (result) {
+      var color = normalizeHex(result && result.sRGBHex);
+      if (color) {
+        item.stroke = color;
+        var row = findRow(id);
+        if (row) {
+          var hex = row.querySelector('.border-hex');
+          if (hex) hex.value = color;
+          updateRowSwatch(row, item);
+        }
+        renderOutputs();
+        saveState();
+        toast('已取边框色 ' + color);
       }
     }).catch(function (err) {
       if (!err || err.name !== 'AbortError') console.error(err);
@@ -1292,6 +1582,46 @@ body.pip-body.no-fit #pip-root {
     g.arcTo(x, y + h, x, y, rr);
     g.arcTo(x, y, x + w, y, rr);
     g.closePath();
+  }
+
+  /* Canvas twin of swatchSVG(): fill swatch with an optional dashed outline,
+     or a line sample for line-type items. */
+  function drawSwatch(g, item, x, y, size, background) {
+    var type = item.type === 'line' ? 'line' : 'fill';
+    var color = normalizeHex(item.color) || '#cccccc';
+    var stroke = normalizeHex(item.stroke) || shadeHex(color, -0.3);
+    var width = clampNum(item.strokeWidth, 0, 6, type === 'line' ? 2 : 0, 0.5);
+    var pattern = dashPattern(item.strokeStyle, width || 1, item.dashScale);
+    g.save();
+    g.lineCap = 'butt';
+    g.lineJoin = 'miter';
+    if (type === 'line') {
+      var lw = Math.max(1, Math.min(width, size - 1));
+      g.beginPath();
+      g.moveTo(x + 0.5, y + size / 2);
+      g.lineTo(x + size - 0.5, y + size / 2);
+      g.strokeStyle = color;
+      g.lineWidth = lw;
+      g.setLineDash(pattern);
+      g.stroke();
+    } else {
+      var inset = width > 0 ? width / 2 : 0.5;
+      var r = Math.max(1.5, Math.round(size * 0.12));
+      roundRect(g, x + inset, y + inset, size - inset * 2, size - inset * 2, r);
+      g.fillStyle = color;
+      g.fill();
+      if (width > 0) {
+        g.strokeStyle = stroke;
+        g.lineWidth = width;
+        g.setLineDash(pattern);
+      } else {
+        g.strokeStyle = ringFor(color, background);
+        g.lineWidth = 1;
+        g.setLineDash([]);
+      }
+      g.stroke();
+    }
+    g.restore();
   }
 
   function renderToCanvas(s, scale) {
@@ -1355,16 +1685,9 @@ body.pip-body.no-fit #pip-root {
         var idx = col * rows + row;
         if (idx >= n) continue;
         var it = s.items[idx];
-        var color = normalizeHex(it.color) || '#cccccc';
         var rowY = y + row * (m.rowH + m.rowGap);
         var swY = rowY + (m.rowH - m.swatch) / 2;
-        g.fillStyle = color;
-        roundRect(g, x, swY, m.swatch, m.swatch, 3);
-        g.fill();
-        g.strokeStyle = ringFor(color, o.background);
-        g.lineWidth = 1;
-        roundRect(g, x + 0.5, swY + 0.5, m.swatch - 1, m.swatch - 1, 3);
-        g.stroke();
+        drawSwatch(g, it, x, swY, m.swatch, o.background);
         g.fillStyle = o.textColor;
         g.font = '400 ' + m.labelSize + 'px ' + FONT_STACK;
         g.fillText(it.label || '未命名', x + m.swatch + ITEM_GAP, rowY + m.rowH / 2);
@@ -1812,6 +2135,7 @@ body.pip-body.no-fit #pip-root {
     if (!file) return;
     file.text().then(function (text) {
       state = normalizeState(JSON.parse(text));
+      styleOpenId = null;
       renderAll();
       saveState();
       toast('配置已导入。');
@@ -1936,6 +2260,7 @@ body.pip-body.no-fit #pip-root {
     on('resetBtn', 'click', function () {
       if (!window.confirm('恢复为示例图例？当前内容会被替换。')) return;
       state = defaultState();
+      styleOpenId = null;
       renderAll();
       saveState();
       toast('已恢复示例。');
@@ -1943,6 +2268,7 @@ body.pip-body.no-fit #pip-root {
     on('clearBtn', 'click', function () {
       if (!window.confirm('确定清空所有分类？')) return;
       state.items = [];
+      styleOpenId = null;
       renderAll();
       saveState();
       toast('已清空。');
@@ -1979,6 +2305,10 @@ body.pip-body.no-fit #pip-root {
         if (!actionEl) return;
         var action = actionEl.getAttribute('data-act');
         if (action === 'pick') pickForItem(id);
+        else if (action === 'pick-stroke') pickStrokeForItem(id);
+        else if (action === 'style') toggleStylePanel(id);
+        else if (action === 'set-type') setItemType(id, actionEl.getAttribute('data-value'));
+        else if (action === 'set-style') setItemStrokeStyle(id, actionEl.getAttribute('data-value'));
         else if (action === 'up') moveItem(id, -1);
         else if (action === 'down') moveItem(id, 1);
         else if (action === 'del') deleteItem(id);
@@ -1987,21 +2317,42 @@ body.pip-body.no-fit #pip-root {
       rowsEl.addEventListener('input', function (e) {
         var row = e.target.closest('.row');
         if (!row) return;
-        var id = row.getAttribute('data-id');
-        var item = state.items.find(function (it) { return it.id === id; });
+        var item = findItem(row.getAttribute('data-id'));
         if (!item) return;
+
         if (e.target.classList.contains('label-input')) {
           item.label = e.target.value;
           scheduleRender();
           saveState();
-        } else if (e.target.classList.contains('hex-input')) {
-          var color = normalizeHex(e.target.value);
-          if (color) {
-            item.color = color;
-            updateRowColor(row, item);
-            scheduleRender();
-            saveState();
+          return;
+        }
+
+        if (e.target.type === 'range') {
+          var prop = e.target.getAttribute('data-prop');
+          if (prop === 'strokeWidth') {
+            var minWidth = item.type === 'line' ? 1 : 0;
+            item.strokeWidth = clampNum(e.target.value, minWidth, 6, item.type === 'line' ? 2 : 0, 0.5);
+            var out = row.querySelector('[data-out="strokeWidth"]');
+            if (out) out.textContent = item.strokeWidth > 0 ? item.strokeWidth + 'px' : '无';
+          } else if (prop === 'dashScale') {
+            item.dashScale = clampNum(e.target.value, 0.6, 2.4, 1, 0.2);
+            var out2 = row.querySelector('[data-out="dashScale"]');
+            if (out2) out2.textContent = item.dashScale.toFixed(1) + '×';
           }
+          updateRowSwatch(row, item);
+          scheduleRender();
+          saveState();
+          return;
+        }
+
+        if (e.target.classList.contains('hex-input')) {
+          var color = normalizeHex(e.target.value);
+          if (!color) return;
+          if (e.target.classList.contains('border-hex')) item.stroke = color;
+          else setPrimaryColor(item, color);
+          updateRowSwatch(row, item);
+          scheduleRender();
+          saveState();
         }
       });
 
@@ -2009,18 +2360,26 @@ body.pip-body.no-fit #pip-root {
         if (!e.target.classList.contains('hex-input')) return;
         var row = e.target.closest('.row');
         if (!row) return;
-        var id = row.getAttribute('data-id');
-        var item = state.items.find(function (it) { return it.id === id; });
+        var item = findItem(row.getAttribute('data-id'));
         if (!item) return;
+        var isStroke = e.target.classList.contains('border-hex');
         var color = normalizeHex(e.target.value);
         if (color) {
-          item.color = color;
           e.target.value = color;
-          updateRowColor(row, item);
+          if (isStroke) {
+            item.stroke = color;
+          } else {
+            setPrimaryColor(item, color);
+            var mainHex = row.querySelector('.hex-input:not(.border-hex)');
+            if (mainHex) mainHex.value = item.color;
+          }
+          updateRowSwatch(row, item);
           renderOutputs();
           saveState();
         } else {
-          e.target.value = item.color;
+          e.target.value = isStroke
+            ? (normalizeHex(item.stroke) || shadeHex(item.color, -0.3))
+            : item.color;
           toast('色值格式应为 #RRGGBB');
         }
       });
@@ -2031,9 +2390,12 @@ body.pip-body.no-fit #pip-root {
           e.target.blur();
         } else if (e.key === 'Escape') {
           var row = e.target.closest('.row');
-          var id = row && row.getAttribute('data-id');
-          var item = state.items.find(function (it) { return it.id === id; });
-          if (item) e.target.value = item.color;
+          var item = row && findItem(row.getAttribute('data-id'));
+          if (item) {
+            e.target.value = e.target.classList.contains('border-hex')
+              ? (normalizeHex(item.stroke) || shadeHex(item.color, -0.3))
+              : item.color;
+          }
           e.target.blur();
         }
       });
