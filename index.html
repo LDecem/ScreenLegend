@@ -113,7 +113,7 @@ button { -webkit-tap-highlight-color: transparent; }
   border-radius: var(--radius-ui);
   box-shadow: var(--shadow);
 }
-.editor { padding: 16px; }
+.editor { padding: 0; }
 .preview { padding: 16px; position: sticky; top: 86px; }
 
 /* ---------- buttons ---------- */
@@ -320,49 +320,46 @@ button { -webkit-tap-highlight-color: transparent; }
 .check .tip { color: var(--muted); font-size: 11px; }
 .more-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
-/* ---------- compass ---------- */
-.compass-box {
+/* ---------- header floating-window actions ---------- */
+.float-actions { display: flex; align-items: center; gap: 8px; }
+.float-actions .btn { white-space: nowrap; }
+
+/* ---------- settings tabs ---------- */
+.panel-tabs {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 14px;
+  gap: 2px;
+  padding: 6px 14px 0;
+  border-bottom: 1px solid var(--line);
 }
-.compass-preview {
-  width: 180px;
-  height: 180px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background-color: #eef2f5;
-  background-image:
-    linear-gradient(45deg, #e2e8ef 25%, transparent 25%),
-    linear-gradient(-45deg, #e2e8ef 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e2e8ef 75%),
-    linear-gradient(-45deg, transparent 75%, #e2e8ef 75%);
-  background-size: 12px 12px;
-  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
-}
-.compass-preview canvas { display: block; max-width: 100%; max-height: 100%; }
-.compass-controls {
-  flex: 1 1 230px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.compass-actions { margin-top: 2px; }
-.compass-actions .btn { min-height: 32px; }
-.compass-controls .seg { align-self: flex-start; }
-.compass-toggle.active {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: #c7e8e2;
+.panel-tab {
+  padding: 9px 18px 10px;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
 }
+.panel-tab:hover { color: var(--ink); }
+.panel-tab.active { color: var(--accent-strong); border-bottom-color: var(--accent); }
+.panel-tab:focus-visible { outline: 2px solid rgba(15, 118, 110, .35); outline-offset: -2px; border-radius: 6px 6px 0 0; }
+.tab-page { padding: 16px; }
+.panel-foot { padding: 0 16px 16px; }
+.panel-foot .more { margin-top: 0; padding-top: 14px; }
+[hidden] { display: none !important; }
+
+/* ---------- compass page / preview ---------- */
+.compass-page { display: flex; flex-direction: column; gap: 14px; }
+.compass-page .seg { align-self: flex-start; }
+.compass-page .hint { margin: 2px 0 0; }
+.compass-stage { min-height: 300px; }
+#compassCanvas {
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
+}
+#compassCanvas.no-card { border-radius: 0; box-shadow: none; }
 
 /* ---------- preview ---------- */
 .preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -574,7 +571,7 @@ body.pip-body.no-fit #pip-root {
 </head>
 <body>
 <div class="online-note" id="onlineNote" role="note">
-  <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗和罗盘需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动置顶”会使用浏览器画中画，罗盘需要本地版。
+  <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗和罗盘需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动图例”会使用浏览器画中画，罗盘需要本地版。
   <a href="https://github.com/LDecem/ScreenLegend/releases/latest" target="_blank" rel="noopener">下载本地版</a>
 </div>
 <header class="app-header">
@@ -586,6 +583,20 @@ body.pip-body.no-fit #pip-root {
     </div>
   </div>
   <div class="header-actions">
+    <div class="float-actions">
+      <button class="btn float" id="floatBtn" type="button" title="打开置顶图例窗口（无标题栏，可直接截图）">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="14" height="12" rx="2"/><path d="M9 21h10a2 2 0 0 0 2-2V9"/>
+        </svg>
+        <span class="btn-label">浮动图例</span>
+      </button>
+      <button class="btn float" id="compassBtn" type="button" title="打开置顶罗盘窗口（无标题栏，可直接截图）">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>
+        </svg>
+        <span class="btn-label">浮动罗盘</span>
+      </button>
+    </div>
     <div class="status" aria-label="浏览器能力">
       <span class="chip" id="eyeChip">取色检测中</span>
       <span class="chip" id="pipChip">悬浮检测中</span>
@@ -600,6 +611,12 @@ body.pip-body.no-fit #pip-root {
 
 <main class="app-main">
   <section class="panel editor">
+    <div class="panel-tabs" role="tablist" aria-label="设置页面">
+      <button class="panel-tab active" id="legendTab" type="button" role="tab" data-tab="legend" aria-selected="true" aria-controls="legendPage">图例</button>
+      <button class="panel-tab" id="compassTab" type="button" role="tab" data-tab="compass" aria-selected="false" aria-controls="compassPage">罗盘</button>
+    </div>
+
+    <div class="tab-page" id="legendPage" role="tabpanel" aria-labelledby="legendTab">
     <div class="toolbar">
       <button class="btn primary" id="pickAddBtn" type="button" title="用系统级取色器从屏幕上取色，并新增一行">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -609,12 +626,6 @@ body.pip-body.no-fit #pip-root {
       </button>
       <button class="btn" id="addBtn" type="button" title="手动新增一行">
         <span class="plus" aria-hidden="true">+</span><span>添加分类</span>
-      </button>
-      <button class="btn float" id="floatBtn" type="button" title="打开系统级置顶悬浮窗">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="14" height="12" rx="2"/><path d="M9 21h10a2 2 0 0 0 2-2V9"/>
-        </svg>
-        <span class="btn-label">浮动置顶</span>
       </button>
       <button class="btn" id="exportBtn" type="button" title="导出 PNG（可选透明背景）">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -689,66 +700,72 @@ body.pip-body.no-fit #pip-root {
         <label class="check" id="fitPipRow"><input type="checkbox" id="fitPipChk"> 悬浮窗自动缩放适应</label>
       </div>
     </details>
+    </div>
 
-    <details class="options compass-options" id="compassOptions">
-      <summary>罗盘（独立悬浮窗）</summary>
-      <div class="compass-box">
-        <div class="compass-preview" aria-hidden="true">
-          <canvas id="compassCanvas" width="192" height="192"></canvas>
-        </div>
-        <div class="compass-controls">
-          <div class="field">
-            <span>样式</span>
-            <div class="seg" id="compassStyleSeg" role="group" aria-label="罗盘样式">
-              <button class="seg-btn active" type="button" data-style="needle" aria-pressed="true">指针</button>
-              <button class="seg-btn" type="button" data-style="ring" aria-pressed="false">刻度</button>
-              <button class="seg-btn" type="button" data-style="rose" aria-pressed="false">玫瑰</button>
-            </div>
-          </div>
-          <label class="field">
-            <span>旋转角度 <output id="compassAngleOut">0°</output></span>
-            <input type="range" id="compassAngleRange" min="0" max="359" step="1">
-          </label>
-          <label class="field">
-            <span>大小 <output id="compassSizeOut">96px</output></span>
-            <input type="range" id="compassSizeRange" min="64" max="160" step="4">
-          </label>
-          <div class="row-inline compass-actions">
-            <button class="btn compass-toggle" id="compassBtn" type="button" title="在系统最前层显示独立罗盘（无标题栏，可直接截图）">
-              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>
-              </svg>
-              <span class="btn-label">显示罗盘</span>
-            </button>
-            <span class="muted">独立置顶，可与图例同时显示</span>
+    <div class="tab-page" id="compassPage" role="tabpanel" aria-labelledby="compassTab" hidden>
+      <div class="compass-page">
+        <div class="field">
+          <span>样式</span>
+          <div class="seg" id="compassStyleSeg" role="group" aria-label="罗盘样式">
+            <button class="seg-btn active" type="button" data-style="needle" aria-pressed="true">指针</button>
+            <button class="seg-btn" type="button" data-style="ring" aria-pressed="false">刻度</button>
+            <button class="seg-btn" type="button" data-style="rose" aria-pressed="false">玫瑰</button>
           </div>
         </div>
+        <div class="field">
+          <span>卡片</span>
+          <div class="seg" id="compassCardSeg" role="group" aria-label="罗盘卡片样式">
+            <button class="seg-btn active" type="button" data-card="light" aria-pressed="true">浅色</button>
+            <button class="seg-btn" type="button" data-card="dark" aria-pressed="false">深色</button>
+            <button class="seg-btn" type="button" data-card="none" aria-pressed="false">透明</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>旋转角度 <output id="compassAngleOut">0°</output></span>
+          <input type="range" id="compassAngleRange" min="0" max="359" step="1">
+        </label>
+        <label class="field">
+          <span>大小 <output id="compassSizeOut">96px</output></span>
+          <input type="range" id="compassSizeRange" min="64" max="160" step="4">
+        </label>
+        <p class="hint">罗盘是独立置顶窗，默认在屏幕右上角；拖动可移动，右键关闭。浅色卡片和图例默认样式一致，透明模式只保留罗盘图形。</p>
       </div>
-    </details>
+    </div>
 
-    <details class="more">
-      <summary>更多</summary>
-      <div class="more-actions">
-        <button class="btn" id="importBtn" type="button">导入配置</button>
-        <button class="btn" id="exportConfigBtn" type="button">导出配置</button>
-        <button class="btn" id="resetBtn" type="button">恢复示例</button>
-        <button class="btn danger" id="clearBtn" type="button">清空</button>
-        <input type="file" id="importFile" accept=".json,application/json" hidden>
-      </div>
-    </details>
+    <div class="panel-foot">
+      <details class="more">
+        <summary>更多</summary>
+        <div class="more-actions">
+          <button class="btn" id="importBtn" type="button">导入配置</button>
+          <button class="btn" id="exportConfigBtn" type="button">导出配置</button>
+          <button class="btn" id="resetBtn" type="button">恢复示例</button>
+          <button class="btn danger" id="clearBtn" type="button">清空图例</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+      </details>
+    </div>
   </section>
 
   <aside class="panel preview">
     <div class="preview-head">
-      <h2>实时预览</h2>
+      <h2 id="previewTitle">图例预览</h2>
       <span class="muted" id="previewMeta"></span>
     </div>
-    <div class="preview-stage" id="previewStage">
-      <div id="previewRoot"></div>
+    <div id="legendPreviewPage">
+      <div class="preview-stage" id="previewStage">
+        <div id="previewRoot"></div>
+      </div>
+      <p class="hint">
+        先把悬浮窗拖到地图空白处，再用 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 做<strong>区域截图</strong>。<br>
+        不要用“窗口截图”，否则图例不会被包含。配置只保存在本机浏览器。</p>
     </div>
-    <p class="hint">
-      先把悬浮窗拖到地图空白处，再用 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 做<strong>区域截图</strong>。<br>
-      不要用“窗口截图”，否则图例不会被包含。截图前把鼠标移开悬浮窗，右上角按钮会自动隐藏。配置只保存在本机浏览器。</p>
+    <div id="compassPreviewPage" hidden>
+      <div class="preview-stage compass-stage">
+        <canvas id="compassCanvas" width="192" height="192"></canvas>
+      </div>
+      <p class="hint">
+        角度 <strong>0° 为正北</strong>；顶部的 <strong>浮动罗盘</strong>按钮随时可以开/关。罗盘和图例可以同时显示，互不影响。配置只保存在本机浏览器。</p>
+    </div>
   </aside>
 </main>
 
@@ -763,16 +780,16 @@ body.pip-body.no-fit #pip-root {
     <ol>
       <li>点击 <strong>取色并添加</strong>，鼠标会变成取色器；在地图软件里点一下专题色块。</li>
       <li>在新增的一行里输入分类名称；继续取色，直到图例完整。</li>
-      <li>点击 <strong>浮动置顶</strong>：会弹出一个<strong>没有标题栏、没有按钮</strong>的图例小窗，永远盖在其他窗口最上层。把它拖到地图空白处，鼠标别停在它上面，然后截图即可。</li>
+      <li>点击顶部的 <strong>浮动图例</strong>：会弹出一个<strong>没有标题栏、没有按钮</strong>的图例小窗，永远盖在其他窗口最上层。把它拖到地图空白处，然后截图即可。</li>
       <li>用 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 或 PixPin/ShareX 做<strong>区域截图</strong>。</li>
       <li>需要“背景全透明”时，勾选 <strong>导出透明背景</strong>，导出 PNG，再用 PixPin/ShareX 贴图置顶。</li>
     </ol>
     <p class="note">
       每行右侧的<strong>滑块按钮</strong>可以打开「图例样式」：切换面型 / 线型，调整线宽、实线 / 虚线 / 点划线以及虚线间距；面型还可以单独设置边框颜色。线型和边框颜色都能用取色器或 HEX 修改。</p>
     <p class="note">
-      「罗盘（独立悬浮窗）」可以再开一个置顶罗盘：选择指针 / 刻度 / 玫瑰样式，拖动角度滑杆调整正北方向（0° 为正北）。罗盘与图例是两扇独立窗口，可同时显示、分别拖动，右键各自关闭。</p>
+      左侧分为「图例」和「罗盘」两个设置页，点标签切换。顶部的<strong>浮动图例</strong> / <strong>浮动罗盘</strong>按钮始终可见，可以随时开/关两扇独立窗口。罗盘页可选指针 / 刻度 / 玫瑰，浅色 / 深色 / 透明卡片，并可调角度（0° 为正北）和大小；罗盘与图例可同时显示、分别拖动、右键各自关闭。</p>
     <p class="note">
-      图例会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗不透明度」只影响浮窗本身。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
+      图例和罗盘配置会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗不透明度」只影响图例浮窗本身。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
     </div>
@@ -789,6 +806,9 @@ body.pip-body.no-fit #pip-root {
   const PALETTE = ['#8fbf6a', '#4e8b5a', '#d8a48c', '#83b6d8', '#b8b8b8', '#e5c07b', '#c678dd', '#56b6c2'];
   const STROKE_STYLES = ['solid', 'dashed', 'dashdot'];
   const COMPASS_STYLES = ['needle', 'ring', 'rose'];
+  const COMPASS_CARDS = ['light', 'dark', 'none'];
+  const COMPASS_CARD_LABELS = { light: '浅色卡片', dark: '深色卡片', none: '透明' };
+  const COMPASS_PAD = 14;
   const STYLE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
     '<path d="M4 7h8M16 7h4M4 17h4M12 17h8"/><circle cx="14" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
   const DEFAULT_ITEMS = [
@@ -803,6 +823,7 @@ body.pip-body.no-fit #pip-root {
   let pipWindow = null;
   let toastTimer = 0;
   let styleOpenId = null;
+  let activeTab = 'legend';
 
   /* ---------------- state ---------------- */
 
@@ -829,6 +850,7 @@ body.pip-body.no-fit #pip-root {
       },
       compass: {
         style: 'needle',
+        card: 'light',
         angle: 0,
         size: 96
       }
@@ -943,6 +965,7 @@ body.pip-body.no-fit #pip-root {
       },
       compass: {
         style: COMPASS_STYLES.indexOf(cp.style) >= 0 ? cp.style : d.compass.style,
+        card: COMPASS_CARDS.indexOf(cp.card) >= 0 ? cp.card : d.compass.card,
         angle: clampInt(cp.angle, 0, 359, d.compass.angle),
         size: clampInt(cp.size, 64, 160, d.compass.size)
       }
@@ -1209,8 +1232,8 @@ body.pip-body.no-fit #pip-root {
     var label = floatBtn.querySelector('.btn-label');
     var on = !!pipWindow || vpipOpen || overlayShowing;
     floatBtn.classList.toggle('active', on);
-    if (label) label.textContent = on ? '关闭浮动' : '浮动置顶';
-    floatBtn.title = on ? '关闭置顶悬浮窗' : '在系统最前层显示图例（无标题栏，可直接截图）';
+    if (label) label.textContent = on ? '关闭图例' : '浮动图例';
+    floatBtn.title = on ? '关闭置顶图例窗口' : '打开置顶图例窗口（无标题栏，可直接截图）';
   }
 
   function syncCompassControls() {
@@ -1229,6 +1252,15 @@ body.pip-body.no-fit #pip-root {
         var on = btns[i].getAttribute('data-style') === state.compass.style;
         btns[i].classList.toggle('active', on);
         btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    }
+    var cardSeg = $('compassCardSeg');
+    if (cardSeg) {
+      var cards = cardSeg.querySelectorAll('[data-card]');
+      for (var j = 0; j < cards.length; j++) {
+        var onCard = cards[j].getAttribute('data-card') === state.compass.card;
+        cards[j].classList.toggle('active', onCard);
+        cards[j].setAttribute('aria-pressed', onCard ? 'true' : 'false');
       }
     }
   }
@@ -1258,6 +1290,28 @@ body.pip-body.no-fit #pip-root {
     renderRows();
     renderOutputs();
     renderCompassPreview();
+  }
+
+  function setTab(tab) {
+    activeTab = tab === 'compass' ? 'compass' : 'legend';
+    var tabs = document.querySelectorAll('.panel-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      var on = tabs[i].getAttribute('data-tab') === activeTab;
+      tabs[i].classList.toggle('active', on);
+      tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    var legendPage = $('legendPage');
+    if (legendPage) legendPage.hidden = activeTab !== 'legend';
+    var compassPage = $('compassPage');
+    if (compassPage) compassPage.hidden = activeTab !== 'compass';
+    var legendPreview = $('legendPreviewPage');
+    if (legendPreview) legendPreview.hidden = activeTab !== 'legend';
+    var compassPreview = $('compassPreviewPage');
+    if (compassPreview) compassPreview.hidden = activeTab !== 'compass';
+    var title = $('previewTitle');
+    if (title) title.textContent = activeTab === 'legend' ? '图例预览' : '罗盘预览';
+    updateMeta();
+    if (activeTab === 'compass') renderCompassPreview();
   }
 
   function renderRows() {
@@ -1411,7 +1465,13 @@ body.pip-body.no-fit #pip-root {
 
   function updateMeta() {
     if (!previewMeta) return;
-    previewMeta.textContent = state.items.length + ' 个分类 · ' + Math.min(state.options.columns, Math.max(1, state.items.length)) + ' 列';
+    if (activeTab === 'compass') {
+      var styleLabel = { needle: '指针', ring: '刻度', rose: '玫瑰' }[state.compass.style] || '指针';
+      var cardLabel = COMPASS_CARD_LABELS[state.compass.card] || '浅色卡片';
+      previewMeta.textContent = cardLabel + ' · ' + styleLabel + ' · ' + state.compass.angle + '° · ' + state.compass.size + 'px';
+    } else {
+      previewMeta.textContent = state.items.length + ' 个分类 · ' + Math.min(state.options.columns, Math.max(1, state.items.length)) + ' 列';
+    }
   }
 
   var pipAutoSize = { w: 0, h: 0 };
@@ -1528,6 +1588,7 @@ body.pip-body.no-fit #pip-root {
     });
     bindEvents();
     renderAll();
+    setTab(activeTab);
   }
 
   /* ---------------- item actions ---------------- */
@@ -1896,13 +1957,22 @@ body.pip-body.no-fit #pip-root {
     return COMPASS_STYLES.indexOf(style) >= 0 ? style : 'needle';
   }
 
-  function compassHaloStroke(g, pathFn, width, color) {
+  function compassCardName(card) {
+    return COMPASS_CARDS.indexOf(card) >= 0 ? card : 'light';
+  }
+
+  function compassCardSize(size, card) {
+    var s = clampInt(size, 64, 160, 96);
+    return s + (compassCardName(card) === 'none' ? 0 : COMPASS_PAD * 2);
+  }
+
+  function compassHaloStroke(g, pathFn, width, color, halo) {
     g.save();
     g.lineJoin = 'round';
     g.lineCap = 'round';
     g.beginPath();
     pathFn();
-    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.strokeStyle = halo;
     g.lineWidth = width + 2.4;
     g.stroke();
     g.beginPath();
@@ -1913,13 +1983,13 @@ body.pip-body.no-fit #pip-root {
     g.restore();
   }
 
-  function compassFill(g, pathFn, fill, outlineWidth) {
+  function compassFill(g, pathFn, fill, outlineWidth, ink, halo) {
     g.save();
     g.lineJoin = 'round';
     g.lineCap = 'round';
     g.beginPath();
     pathFn();
-    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.strokeStyle = halo;
     g.lineWidth = (outlineWidth || 1) + 2.4;
     g.stroke();
     g.beginPath();
@@ -1928,36 +1998,38 @@ body.pip-body.no-fit #pip-root {
     g.fill();
     g.beginPath();
     pathFn();
-    g.strokeStyle = '#1f2937';
+    g.strokeStyle = ink;
     g.lineWidth = outlineWidth || 1;
     g.stroke();
     g.restore();
   }
 
-  function compassLabel(g, text, x, y, font) {
+  function compassLabel(g, text, x, y, font, ink, halo) {
     g.save();
     g.font = font;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.lineJoin = 'round';
     g.lineWidth = 3;
-    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.strokeStyle = halo;
     g.strokeText(text, x, y);
-    g.fillStyle = '#1f2937';
+    g.fillStyle = ink;
     g.fillText(text, x, y);
     g.restore();
   }
 
-  /* Three small, map-friendly compass roses. Everything is drawn with a white
-     halo behind dark shapes so it stays readable on both light and dark maps.
-     The whole rose rotates; 0° points north. */
-  function drawCompass(g, size, style, angle) {
+  /* Three small compass roses. The palette follows the card style: dark ink on
+     a light card, light ink on a dark card, and a white halo around the bare
+     map version. The whole rose rotates; 0° points north. */
+  function drawCompass(g, size, style, angle, card) {
     var s = Math.max(32, Number(size) || 96);
     var R = s * 0.34;
-    var ink = '#1f2937';
-    var north = '#b91c1c';
-    var light = '#f8fafc';
+    var dark = compassCardName(card) === 'dark';
+    var ink = dark ? '#f8fafc' : '#1f2937';
+    var north = dark ? '#ef4444' : '#b91c1c';
+    var light = dark ? '#334155' : '#f8fafc';
     var muted = '#94a3b8';
+    var halo = dark ? 'rgba(15,23,42,.55)' : 'rgba(255,255,255,.92)';
     var font = '700 ' + Math.max(10, Math.round(s * 0.135)) + 'px ' + FONT_STACK;
     var mode = compassStyleName(style);
 
@@ -1968,8 +2040,8 @@ body.pip-body.no-fit #pip-root {
     g.lineCap = 'round';
 
     if (mode === 'ring') {
-      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink);
-      compassHaloStroke(g, function () { g.arc(0, 0, R * 0.78, 0, Math.PI * 2); }, 0.9, muted);
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink, halo);
+      compassHaloStroke(g, function () { g.arc(0, 0, R * 0.78, 0, Math.PI * 2); }, 0.9, muted, halo);
       for (var i = 0; i < 12; i++) {
         (function (a, major) {
           var outer = R * 0.94;
@@ -1977,7 +2049,7 @@ body.pip-body.no-fit #pip-root {
           compassHaloStroke(g, function () {
             g.moveTo(Math.sin(a) * inner, -Math.cos(a) * inner);
             g.lineTo(Math.sin(a) * outer, -Math.cos(a) * outer);
-          }, major ? 1.3 : 0.9, ink);
+          }, major ? 1.3 : 0.9, ink, halo);
         })(i * Math.PI / 6, i % 3 === 0);
       }
       compassFill(g, function () {
@@ -1985,15 +2057,15 @@ body.pip-body.no-fit #pip-root {
         g.lineTo(R * 0.10, 0);
         g.lineTo(-R * 0.10, 0);
         g.closePath();
-      }, north, 0.9);
+      }, north, 0.9, ink, halo);
       compassFill(g, function () {
         g.moveTo(0, R * 0.42);
         g.lineTo(R * 0.075, 0);
         g.lineTo(-R * 0.075, 0);
         g.closePath();
-      }, light, 0.9);
+      }, light, 0.9, ink, halo);
     } else if (mode === 'rose') {
-      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.2, ink);
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.2, ink, halo);
       var tip = R * 0.96;
       var innerR = R * 0.28;
       var starPath = function () {
@@ -2010,7 +2082,7 @@ body.pip-body.no-fit #pip-root {
       g.save();
       g.beginPath();
       starPath();
-      g.strokeStyle = 'rgba(255,255,255,.92)';
+      g.strokeStyle = halo;
       g.lineWidth = 3.6;
       g.stroke();
       g.restore();
@@ -2054,7 +2126,7 @@ body.pip-body.no-fit #pip-root {
       g.lineWidth = 0.9;
       g.stroke();
     } else {
-      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink);
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink, halo);
       var tipN = R * 0.92;
       var tailS = R * 0.92;
       var halfW = R * 0.15;
@@ -2068,7 +2140,7 @@ body.pip-body.no-fit #pip-root {
       g.save();
       g.beginPath();
       diamond();
-      g.strokeStyle = 'rgba(255,255,255,.92)';
+      g.strokeStyle = halo;
       g.lineWidth = 3.8;
       g.stroke();
       g.restore();
@@ -2099,19 +2171,43 @@ body.pip-body.no-fit #pip-root {
       g.fill();
     }
 
-    compassLabel(g, 'N', 0, -R - s * 0.075, font);
+    compassLabel(g, 'N', 0, -R - s * 0.075, font, ink, halo);
     g.restore();
   }
 
-  function renderCompassCanvas(size, style, angle, scale) {
+  /* The compass floats in a card that matches the legend card: same padding,
+     radius and border. `card` is light / dark / none. */
+  function drawCompassCard(g, size, style, angle, card) {
     var s = clampInt(size, 64, 160, 96);
+    var cardName = compassCardName(card);
+    var pad = cardName === 'none' ? 0 : COMPASS_PAD;
+    var cardSize = s + pad * 2;
+    if (cardName !== 'none') {
+      g.save();
+      roundRect(g, 0, 0, cardSize, cardSize, 10);
+      g.fillStyle = cardName === 'dark' ? '#111827' : '#ffffff';
+      g.fill();
+      g.strokeStyle = cardName === 'dark' ? 'rgba(255,255,255,.22)' : 'rgba(15,23,42,.14)';
+      g.lineWidth = 1;
+      roundRect(g, 0.5, 0.5, cardSize - 1, cardSize - 1, 10);
+      g.stroke();
+      g.restore();
+    }
+    g.save();
+    g.translate(pad, pad);
+    drawCompass(g, s, style, angle, cardName);
+    g.restore();
+  }
+
+  function renderCompassCardCanvas(size, style, angle, card, scale) {
+    var cardSize = compassCardSize(size, card);
     var safeScale = Math.max(0.5, Number(scale) || 1);
     var cnv = document.createElement('canvas');
-    cnv.width = Math.max(1, Math.round(s * safeScale));
+    cnv.width = Math.max(1, Math.round(cardSize * safeScale));
     cnv.height = cnv.width;
     var g = cnv.getContext('2d');
     g.scale(safeScale, safeScale);
-    drawCompass(g, s, style, angle);
+    drawCompassCard(g, size, style, angle, card);
     return cnv;
   }
 
@@ -2119,16 +2215,19 @@ body.pip-body.no-fit #pip-root {
     var canvas = $('compassCanvas');
     if (!canvas) return;
     var size = clampInt(state.compass.size, 64, 160, 96);
+    var cardSize = compassCardSize(size, state.compass.card);
     var dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-    canvas.width = Math.max(1, Math.round(size * dpr));
+    canvas.width = Math.max(1, Math.round(cardSize * dpr));
     canvas.height = canvas.width;
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
+    canvas.style.width = cardSize + 'px';
+    canvas.style.height = cardSize + 'px';
     var g = canvas.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.scale(dpr, dpr);
-    drawCompass(g, size, state.compass.style, state.compass.angle);
+    drawCompassCard(g, size, state.compass.style, state.compass.angle, state.compass.card);
+    canvas.classList.toggle('no-card', state.compass.card === 'none');
+    updateMeta();
   }
 
   /* ---------------- native overlay bridge (tools\legend-overlay.ps1) ----------------
@@ -2269,15 +2368,15 @@ body.pip-body.no-fit #pip-root {
     if (!btn) return;
     var label = btn.querySelector('.btn-label');
     btn.classList.toggle('active', compassShowing);
-    if (label) label.textContent = compassShowing ? '关闭罗盘' : '显示罗盘';
+    if (label) label.textContent = compassShowing ? '关闭罗盘' : '浮动罗盘';
     btn.title = compassShowing
-      ? '关闭置顶罗盘'
-      : '在系统最前层显示独立罗盘（无标题栏，可直接截图）';
+      ? '关闭置顶罗盘窗口'
+      : '打开置顶罗盘窗口（无标题栏，可直接截图）';
   }
 
   function compassPngBase64() {
     var scale = Math.max(1, window.devicePixelRatio || 1);
-    var cnv = renderCompassCanvas(state.compass.size, state.compass.style, state.compass.angle, scale);
+    var cnv = renderCompassCardCanvas(state.compass.size, state.compass.style, state.compass.angle, state.compass.card, scale);
     /* Windows ignores mouse input over fully transparent pixels of a layered
        window, so lift alpha=0 to 1: invisible, but draggable. */
     var g = cnv.getContext('2d');
@@ -2465,7 +2564,7 @@ body.pip-body.no-fit #pip-root {
         if (video.readyState < 2) {
           if (Date.now() - started > 4000) {
             teardownVideoPip();
-            toast('浮窗没有就绪，请再点一次「浮动置顶」。');
+            toast('浮窗没有就绪，请再点一次「浮动图例」。');
             return;
           }
           window.setTimeout(waitReady, 60);
@@ -2667,6 +2766,29 @@ body.pip-body.no-fit #pip-root {
         renderCompassPreview();
         refreshCompass();
         saveState();
+      });
+    }
+    var compassCardSeg = $('compassCardSeg');
+    if (compassCardSeg) {
+      compassCardSeg.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-card]');
+        if (!btn) return;
+        var card = btn.getAttribute('data-card');
+        if (COMPASS_CARDS.indexOf(card) < 0) return;
+        state.compass.card = card;
+        syncCompassControls();
+        renderCompassPreview();
+        refreshCompass();
+        saveState();
+      });
+    }
+
+    var tabBar = document.querySelector('.panel-tabs');
+    if (tabBar) {
+      tabBar.addEventListener('click', function (e) {
+        var tab = e.target.closest('.panel-tab');
+        if (!tab) return;
+        setTab(tab.getAttribute('data-tab'));
       });
     }
 
