@@ -425,6 +425,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .hint { margin: 12px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.75; }
 .hint strong { color: var(--ink); }
+.pick-hint { margin: 0 2px 10px; }
 kbd {
   display: inline-block;
   padding: 1px 5px;
@@ -481,6 +482,35 @@ dialog::backdrop { background: rgba(15, 23, 42, .38); backdrop-filter: blur(2px)
   line-height: 1.7;
 }
 .dialog-foot { display: flex; justify-content: flex-end; margin-top: 16px; }
+.paste-dialog { width: min(760px, calc(100vw - 32px)); }
+.dialog-tip { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.paste-stage {
+  margin-top: 12px;
+  min-height: 220px;
+  max-height: 60vh;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(45deg, #edf1f5 25%, transparent 25%),
+    linear-gradient(-45deg, #edf1f5 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #edf1f5 75%),
+    linear-gradient(-45deg, transparent 75%, #edf1f5 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.paste-stage.dragging { border-color: var(--accent); background-color: var(--accent-soft); }
+#pasteCanvas { display: block; max-width: 100%; max-height: 55vh; border-radius: 4px; cursor: crosshair; }
+.paste-empty { color: var(--muted); font-size: 13px; line-height: 1.8; text-align: center; }
+.paste-empty span { font-size: 12px; }
+.paste-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 22px; color: var(--muted); font-size: 12px; }
+.paste-preview { width: 20px; height: 20px; flex: 0 0 auto; border: 1px solid rgba(0,0,0,.15); border-radius: 5px; }
+.paste-foot { gap: 8px; }
 /* ---------- legend card (shared with the floating PiP window) ---------- */
 .legend-card {
   --pad: 14px;
@@ -599,6 +629,11 @@ body.pip-body.no-fit #pip-root {
 </style>
 </head>
 <body>
+<div class="compat-warning unsupported" id="unsupportedBrowser" hidden>
+  <strong>当前浏览器无法运行 ScreenLegend。</strong>
+  请使用 Microsoft Edge 或 Google Chrome；360 / QQ / 搜狗浏览器请切换到「极速模式」。IE11、Edge Legacy 和兼容模式已不再支持。
+  <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener">下载 Edge</a>
+</div>
 <div class="online-note" id="onlineNote" role="note">
   <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗和罗盘需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动图例”会使用浏览器画中画，罗盘需要本地版。
   <a href="https://github.com/LDecem/ScreenLegend/releases/latest" target="_blank" rel="noopener">下载本地版</a>
@@ -635,8 +670,7 @@ body.pip-body.no-fit #pip-root {
 </header>
 
 <div class="compat-warning" id="compatWarning" role="alert">
-  <strong>当前浏览器缺少必要能力。</strong>
-  全屏取色和置顶悬浮需要 Microsoft Edge 或 Google Chrome 116+；推荐双击 <code>启动.bat</code> 打开。编辑和导出 PNG 仍可正常使用。</div>
+  <strong>兼容提示。</strong>当前浏览器可能没有系统级取色器：可截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴取色，或直接输入 HEX。置顶浮窗推荐双击 <code>启动.bat</code> 使用本地版。</div>
 
 <main class="app-main">
   <section class="panel editor">
@@ -669,6 +703,8 @@ body.pip-body.no-fit #pip-root {
         <span>复制 PNG</span>
       </button>
     </div>
+
+    <p class="hint pick-hint">截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）可直接粘贴取色；没有系统取色器时也能用。</p>
 
     <div class="rows" id="rows" aria-label="图例分类列表"></div>
 
@@ -811,7 +847,7 @@ body.pip-body.no-fit #pip-root {
       <button class="icon-btn" id="helpCloseBtn" type="button" title="关闭">×</button>
     </div>
     <ol>
-      <li>点击 <strong>取色并添加</strong>，鼠标会变成取色器；在地图软件里点一下专题色块。</li>
+      <li>点击 <strong>取色并添加</strong>：有系统级取色器时直接在地图上点色；没有时（Firefox / Safari / 部分 360）会打开粘贴取色窗口，截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）再点图片取色。</li>
       <li>在新增的一行里输入分类名称；继续取色，直到图例完整。</li>
       <li>点击顶部的 <strong>浮动图例</strong>：会弹出一个<strong>没有标题栏、没有按钮</strong>的图例小窗，永远盖在其他窗口最上层。把它拖到地图空白处，然后截图即可。</li>
       <li>用 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 或 PixPin/ShareX 做<strong>区域截图</strong>。</li>
@@ -819,6 +855,8 @@ body.pip-body.no-fit #pip-root {
     </ol>
     <p class="note">
       每行右侧的<strong>滑块按钮</strong>可以打开「图例样式」：切换面型 / 线型，调整线宽、实线 / 虚线 / 点划线以及虚线间距；面型还可以单独设置边框颜色。线型和边框颜色都能用取色器或 HEX 修改。</p>
+    <p class="note">
+      没有系统级取色器时，也可以随时截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）把截图粘贴到工具里，点击图片取色；或者直接输入 HEX。</p>
     <p class="note">
       左侧分为「图例」和「罗盘」两个设置页，点标签切换。顶部的<strong>浮动图例</strong> / <strong>浮动罗盘</strong>按钮始终可见，可以随时开/关两扇独立窗口。罗盘页可选指针 / 刻度 / 玫瑰，浅色 / 深色 / 透明卡片，并可调底色不透明度、角度（0° 为正北）和大小；罗盘与图例可同时显示、分别拖动、右键各自关闭。</p>
     <p class="note">
@@ -828,6 +866,53 @@ body.pip-body.no-fit #pip-root {
     </div>
   </div>
 </dialog>
+
+<dialog id="pasteDialog" class="paste-dialog">
+  <div class="dialog-body">
+    <div class="dialog-head">
+      <h2>粘贴截图取色</h2>
+      <button class="icon-btn" id="pasteCloseBtn" type="button" title="关闭">×</button>
+    </div>
+    <p class="dialog-tip">按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴截图，或把图片拖到这里；也可以选择图片文件。</p>
+    <div class="paste-stage" id="pasteStage" tabindex="0">
+      <canvas id="pasteCanvas" hidden></canvas>
+      <div class="paste-empty" id="pasteEmpty">截图后按 Ctrl+V 粘贴到这里<br><span>或拖入图片文件</span></div>
+    </div>
+    <div class="paste-status">
+      <span class="paste-preview" id="pastePreview" hidden></span>
+      <span id="pasteStatus">等待图片…</span>
+    </div>
+    <div class="dialog-foot paste-foot">
+      <input type="file" id="pasteImageInput" accept="image/*" hidden>
+      <button class="btn" id="pasteFileBtn" type="button">选择图片</button>
+      <button class="btn primary" id="pasteCancelBtn" type="button">取消</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var ok = false;
+  try {
+    ok = !!(window.fetch && window.Promise && window.CSS && CSS.supports &&
+      CSS.supports('display', 'grid') && window.HTMLDialogElement &&
+      HTMLDialogElement.prototype.showModal && !document.documentMode && !window.StyleMedia);
+  } catch (e) {
+    ok = false;
+  }
+  if (!ok) {
+    var note = document.getElementById('unsupportedBrowser');
+    if (note) {
+      note.hidden = false;
+      note.className += ' show';
+    }
+    var header = document.querySelector('.app-header');
+    if (header) header.style.display = 'none';
+    var main = document.querySelector('.app-main');
+    if (main) main.style.display = 'none';
+  }
+})();
+</script>
 
 <script>
 (function () {
@@ -932,6 +1017,13 @@ body.pip-body.no-fit #pip-root {
     if (!isFinite(a)) a = 1;
     a = Math.min(1, Math.max(0, a));
     return 'rgba(' + parseInt(c.slice(1, 3), 16) + ',' + parseInt(c.slice(3, 5), 16) + ',' + parseInt(c.slice(5, 7), 16) + ',' + a + ')';
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      var n = Math.max(0, Math.min(255, Math.round(Number(v) || 0)));
+      return n.toString(16).padStart(2, '0');
+    }).join('');
   }
 
   /* One dash pattern for SVG, CSS and the canvas renderer, so the editor
@@ -1251,6 +1343,15 @@ body.pip-body.no-fit #pip-root {
   var pipChip = $('pipChip');
   var compatWarning = $('compatWarning');
   var floatBtn = $('floatBtn');
+  var pasteDialog = $('pasteDialog');
+  var pasteStage = $('pasteStage');
+  var pasteCanvas = $('pasteCanvas');
+  var pasteEmpty = $('pasteEmpty');
+  var pasteStatus = $('pasteStatus');
+  var pastePreview = $('pastePreview');
+  var pasteImageInput = $('pasteImageInput');
+  var pastePickCallback = null;
+  var pasteImageReady = false;
 
   var hasEyeDropper = typeof window.EyeDropper === 'function';
   var hasPip = !!(window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function');
@@ -1262,11 +1363,32 @@ body.pip-body.no-fit #pip-root {
   }
 
   function updateSupportUI() {
-    setChip(eyeChip, hasEyeDropper, '全屏取色 ✓', '取色不可用');
+    setChip(eyeChip, hasEyeDropper, '全屏取色 ✓', '粘贴截图取色');
     var canFloat = vpipSupported() || hasPip;
     setChip(pipChip, canFloat, '置顶悬浮 ✓', '悬浮不可用');
+
+    var pickBtn = $('pickAddBtn');
+    if (pickBtn) {
+      var pickLabel = pickBtn.querySelector('span');
+      if (pickLabel) pickLabel.textContent = hasEyeDropper ? '取色并添加' : '粘贴截图取色';
+      pickBtn.title = hasEyeDropper
+        ? '用系统级取色器从屏幕上取色，并新增一行'
+        : '截图后按 Ctrl+V，点击图片取色';
+    }
+
     if (compatWarning) {
-      compatWarning.classList.toggle('show', !hasEyeDropper || !canFloat);
+      var show = !hasEyeDropper || !canFloat;
+      compatWarning.classList.toggle('show', show);
+      if (show) {
+        var parts = [];
+        if (!hasEyeDropper) {
+          parts.push('当前浏览器没有系统级取色器：可截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴取色，或直接输入 HEX。');
+        }
+        if (!canFloat) {
+          parts.push('置顶浮窗推荐双击 <code>启动.bat</code> 使用本地版；也可以使用浏览器画中画。');
+        }
+        compatWarning.innerHTML = '<strong>兼容提示</strong> ' + parts.join(' ');
+      }
     }
   }
 
@@ -1384,14 +1506,17 @@ body.pip-body.no-fit #pip-root {
       }
     }
     if (!state.items.length) {
-      rowsEl.innerHTML = '<div class="rows-empty">还没有分类。点击「取色并添加」，在地图上点一下即可开始。</div>';
+      rowsEl.innerHTML = '<div class="rows-empty">' + (hasEyeDropper
+        ? '还没有分类。点击「取色并添加」，在地图上点一下即可开始。'
+        : '还没有分类。点击「粘贴截图取色」，或截图后按 Ctrl+V 开始。') + '</div>';
       return;
     }
+    var pickTitle = hasEyeDropper ? '点击全屏取色' : '点击后粘贴截图取色';
     rowsEl.innerHTML = state.items.map(function (it, idx) {
       var last = state.items.length - 1;
       var open = styleOpenId === it.id;
       return '<div class="row' + (open ? ' open' : '') + '" data-id="' + esc(it.id) + '">' +
-        '<button type="button" class="swatch" data-act="pick" title="点击全屏取色" aria-label="为「' + esc(it.label || '未命名') + '」取色">' +
+        '<button type="button" class="swatch" data-act="pick" title="' + pickTitle + '" aria-label="为「' + esc(it.label || '未命名') + '」取色">' +
           swatchSVG(it, 30, 30, { background: '#ffffff' }) +
         '</button>' +
         '<input class="label-input" type="text" value="' + esc(it.label) + '" placeholder="分类名称" aria-label="分类名称" maxlength="40">' +
@@ -1749,8 +1874,7 @@ body.pip-body.no-fit #pip-root {
 
   function pickAndAdd() {
     if (!hasEyeDropper) {
-      addItem(nextColor(), true);
-      toast('当前浏览器不支持全屏取色，已添加一行，请手动输入色值。');
+      openPastePicker(defaultPasteAdd);
       return;
     }
     var dropper = new window.EyeDropper();
@@ -1763,28 +1887,47 @@ body.pip-body.no-fit #pip-root {
     });
   }
 
+  function applyPickedColor(id, color) {
+    var item = findItem(id);
+    if (!item) return;
+    setPrimaryColor(item, color);
+    var row = findRow(id);
+    if (row) {
+      var hex = row.querySelector('.hex-input');
+      if (hex) hex.value = item.color;
+      updateRowSwatch(row, item);
+    }
+    renderOutputs();
+    saveState();
+    toast('已取色 ' + color);
+  }
+
+  function applyPickedStrokeColor(id, color) {
+    var item = findItem(id);
+    if (!item) return;
+    item.stroke = color;
+    var row = findRow(id);
+    if (row) {
+      var hex = row.querySelector('.border-hex');
+      if (hex) hex.value = color;
+      updateRowSwatch(row, item);
+    }
+    renderOutputs();
+    saveState();
+    toast('已取边框色 ' + color);
+  }
+
   function pickForItem(id) {
     var item = findItem(id);
     if (!item) return;
     if (!hasEyeDropper) {
-      toast('当前浏览器不支持全屏取色，请直接输入色值。');
+      openPastePicker(function (color) { applyPickedColor(id, color); });
       return;
     }
     var dropper = new window.EyeDropper();
     dropper.open().then(function (result) {
       var color = normalizeHex(result && result.sRGBHex);
-      if (color) {
-        setPrimaryColor(item, color);
-        var row = findRow(id);
-        if (row) {
-          var hex = row.querySelector('.hex-input');
-          if (hex) hex.value = item.color;
-          updateRowSwatch(row, item);
-        }
-        renderOutputs();
-        saveState();
-        toast('已取色 ' + color);
-      }
+      if (color) applyPickedColor(id, color);
     }).catch(function (err) {
       if (!err || err.name !== 'AbortError') console.error(err);
     });
@@ -1794,27 +1937,137 @@ body.pip-body.no-fit #pip-root {
     var item = findItem(id);
     if (!item) return;
     if (!hasEyeDropper) {
-      toast('当前浏览器不支持全屏取色，请直接输入色值。');
+      openPastePicker(function (color) { applyPickedStrokeColor(id, color); });
       return;
     }
     var dropper = new window.EyeDropper();
     dropper.open().then(function (result) {
       var color = normalizeHex(result && result.sRGBHex);
-      if (color) {
-        item.stroke = color;
-        var row = findRow(id);
-        if (row) {
-          var hex = row.querySelector('.border-hex');
-          if (hex) hex.value = color;
-          updateRowSwatch(row, item);
-        }
-        renderOutputs();
-        saveState();
-        toast('已取边框色 ' + color);
-      }
+      if (color) applyPickedStrokeColor(id, color);
     }).catch(function (err) {
       if (!err || err.name !== 'AbortError') console.error(err);
     });
+  }
+
+  /* ---------------- paste screenshot picker ----------------
+     Firefox / Safari / some 360 builds have no EyeDropper. The user can take a
+     screenshot, paste it here (Ctrl/⌘+V) or drop an image, then click a pixel. */
+
+  function isEditableElement(el) {
+    if (!el) return false;
+    var tag = (el.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+  }
+
+  function imageFileFromClipboard(e) {
+    var dt = e.clipboardData;
+    if (!dt) return null;
+    var items = dt.items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && /^image\//.test(items[i].type)) {
+        var file = items[i].getAsFile();
+        if (file) return file;
+      }
+    }
+    var files = dt.files || [];
+    for (var j = 0; j < files.length; j++) {
+      if (/^image\//.test(files[j].type)) return files[j];
+    }
+    return null;
+  }
+
+  function openPastePicker(callback, file) {
+    pastePickCallback = callback || null;
+    resetPastePicker();
+    if (file) loadPasteFile(file);
+    if (pasteDialog && !pasteDialog.open) pasteDialog.showModal();
+    if (pasteStage) pasteStage.focus();
+  }
+
+  function resetPastePicker() {
+    pasteImageReady = false;
+    if (pasteCanvas) {
+      pasteCanvas.hidden = true;
+      pasteCanvas.width = 1;
+      pasteCanvas.height = 1;
+    }
+    if (pasteEmpty) pasteEmpty.hidden = false;
+    if (pasteStatus) pasteStatus.textContent = '等待图片…';
+    if (pastePreview) {
+      pastePreview.hidden = true;
+      pastePreview.style.background = 'transparent';
+    }
+    if (pasteImageInput) pasteImageInput.value = '';
+  }
+
+  function loadPasteFile(file) {
+    if (!file) return;
+    if (file.type && !/^image\//.test(file.type)) {
+      if (pasteStatus) pasteStatus.textContent = '请选择图片文件';
+      return;
+    }
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      if (pasteCanvas) {
+        pasteCanvas.width = Math.max(1, img.naturalWidth || img.width);
+        pasteCanvas.height = Math.max(1, img.naturalHeight || img.height);
+        var g = pasteCanvas.getContext('2d', { willReadFrequently: true });
+        g.clearRect(0, 0, pasteCanvas.width, pasteCanvas.height);
+        g.drawImage(img, 0, 0);
+        pasteCanvas.hidden = false;
+      }
+      pasteImageReady = true;
+      if (pasteEmpty) pasteEmpty.hidden = true;
+      if (pasteStatus) pasteStatus.textContent = '点击图片取色';
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function () {
+      if (pasteStatus) pasteStatus.textContent = '图片读取失败，请重试';
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function pasteSampleAt(e) {
+    if (!pasteImageReady || !pasteCanvas || pasteCanvas.hidden) return null;
+    var rect = pasteCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    var x = Math.floor((e.clientX - rect.left) * pasteCanvas.width / rect.width);
+    var y = Math.floor((e.clientY - rect.top) * pasteCanvas.height / rect.height);
+    if (x < 0 || y < 0 || x >= pasteCanvas.width || y >= pasteCanvas.height) return null;
+    var data = pasteCanvas.getContext('2d', { willReadFrequently: true }).getImageData(x, y, 1, 1).data;
+    if (data[3] === 0) return null;
+    return { hex: rgbToHex(data[0], data[1], data[2]), x: x, y: y };
+  }
+
+  function onPasteCanvasMove(e) {
+    var sample = pasteSampleAt(e);
+    if (!sample) return;
+    if (pastePreview) {
+      pastePreview.hidden = false;
+      pastePreview.style.background = sample.hex;
+    }
+    if (pasteStatus) pasteStatus.textContent = sample.hex + ' · 点击取色';
+  }
+
+  function finishPastePick(color) {
+    var cb = pastePickCallback;
+    pastePickCallback = null;
+    if (pasteDialog && pasteDialog.open) pasteDialog.close();
+    if (cb) cb(color);
+  }
+
+  function onPasteCanvasClick(e) {
+    var sample = pasteSampleAt(e);
+    if (!sample) return;
+    finishPastePick(sample.hex);
+  }
+
+  function defaultPasteAdd(color) {
+    setTab('legend');
+    addItem(color, true);
+    toast('已取色 ' + color);
   }
 
   /* ---------------- PNG export ---------------- */
@@ -2968,6 +3221,56 @@ body.pip-body.no-fit #pip-root {
         if (e.target === dialog) dialog.close();
       });
     }
+
+    if (pasteDialog) {
+      pasteDialog.addEventListener('close', function () {
+        pastePickCallback = null;
+        resetPastePicker();
+      });
+      pasteDialog.addEventListener('click', function (e) {
+        if (e.target === pasteDialog) pasteDialog.close();
+      });
+    }
+    on('pasteCloseBtn', 'click', function () { if (pasteDialog) pasteDialog.close(); });
+    on('pasteCancelBtn', 'click', function () { if (pasteDialog) pasteDialog.close(); });
+    on('pasteFileBtn', 'click', function () { if (pasteImageInput) pasteImageInput.click(); });
+    on('pasteImageInput', 'change', function (e) {
+      var file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (file) loadPasteFile(file);
+    });
+    if (pasteStage) {
+      pasteStage.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        pasteStage.classList.add('dragging');
+      });
+      pasteStage.addEventListener('dragleave', function () {
+        pasteStage.classList.remove('dragging');
+      });
+      pasteStage.addEventListener('drop', function (e) {
+        e.preventDefault();
+        pasteStage.classList.remove('dragging');
+        var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) loadPasteFile(file);
+      });
+    }
+    if (pasteCanvas) {
+      pasteCanvas.addEventListener('mousemove', onPasteCanvasMove);
+      pasteCanvas.addEventListener('click', onPasteCanvasClick);
+    }
+    document.addEventListener('paste', function (e) {
+      var file = imageFileFromClipboard(e);
+      if (!file) return;
+      if (pasteDialog && pasteDialog.open) {
+        e.preventDefault();
+        loadPasteFile(file);
+        return;
+      }
+      if (dialog && dialog.open) return;
+      if (isEditableElement(document.activeElement)) return;
+      e.preventDefault();
+      openPastePicker(defaultPasteAdd, file);
+    });
 
     if (rowsEl) {
       /* Edge app windows occasionally keep the IME attached to the previous
