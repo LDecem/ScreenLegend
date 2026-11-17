@@ -320,6 +320,50 @@ button { -webkit-tap-highlight-color: transparent; }
 .check .tip { color: var(--muted); font-size: 11px; }
 .more-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
+/* ---------- compass ---------- */
+.compass-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.compass-preview {
+  width: 180px;
+  height: 180px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: #eef2f5;
+  background-image:
+    linear-gradient(45deg, #e2e8ef 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8ef 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8ef 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8ef 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+.compass-preview canvas { display: block; max-width: 100%; max-height: 100%; }
+.compass-controls {
+  flex: 1 1 230px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.compass-actions { margin-top: 2px; }
+.compass-actions .btn { min-height: 32px; }
+.compass-controls .seg { align-self: flex-start; }
+.compass-toggle.active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: #c7e8e2;
+  font-weight: 600;
+}
+
 /* ---------- preview ---------- */
 .preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .preview-head h2 { margin: 0; font-size: 14px; }
@@ -530,7 +574,7 @@ body.pip-body.no-fit #pip-root {
 </head>
 <body>
 <div class="online-note" id="onlineNote" role="note">
-  <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动置顶”会使用浏览器画中画。
+  <strong>在线试用版</strong>：可以直接编辑图例、取色、导出 PNG。置顶悬浮窗和罗盘需要在本地运行（下载后双击 <code>启动.bat</code>）；在线时点“浮动置顶”会使用浏览器画中画，罗盘需要本地版。
   <a href="https://github.com/LDecem/ScreenLegend/releases/latest" target="_blank" rel="noopener">下载本地版</a>
 </div>
 <header class="app-header">
@@ -646,6 +690,42 @@ body.pip-body.no-fit #pip-root {
       </div>
     </details>
 
+    <details class="options compass-options" id="compassOptions">
+      <summary>罗盘（独立悬浮窗）</summary>
+      <div class="compass-box">
+        <div class="compass-preview" aria-hidden="true">
+          <canvas id="compassCanvas" width="192" height="192"></canvas>
+        </div>
+        <div class="compass-controls">
+          <div class="field">
+            <span>样式</span>
+            <div class="seg" id="compassStyleSeg" role="group" aria-label="罗盘样式">
+              <button class="seg-btn active" type="button" data-style="needle" aria-pressed="true">指针</button>
+              <button class="seg-btn" type="button" data-style="ring" aria-pressed="false">刻度</button>
+              <button class="seg-btn" type="button" data-style="rose" aria-pressed="false">玫瑰</button>
+            </div>
+          </div>
+          <label class="field">
+            <span>旋转角度 <output id="compassAngleOut">0°</output></span>
+            <input type="range" id="compassAngleRange" min="0" max="359" step="1">
+          </label>
+          <label class="field">
+            <span>大小 <output id="compassSizeOut">96px</output></span>
+            <input type="range" id="compassSizeRange" min="64" max="160" step="4">
+          </label>
+          <div class="row-inline compass-actions">
+            <button class="btn compass-toggle" id="compassBtn" type="button" title="在系统最前层显示独立罗盘（无标题栏，可直接截图）">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>
+              </svg>
+              <span class="btn-label">显示罗盘</span>
+            </button>
+            <span class="muted">独立置顶，可与图例同时显示</span>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <details class="more">
       <summary>更多</summary>
       <div class="more-actions">
@@ -690,6 +770,8 @@ body.pip-body.no-fit #pip-root {
     <p class="note">
       每行右侧的<strong>滑块按钮</strong>可以打开「图例样式」：切换面型 / 线型，调整线宽、实线 / 虚线 / 点划线以及虚线间距；面型还可以单独设置边框颜色。线型和边框颜色都能用取色器或 HEX 修改。</p>
     <p class="note">
+      「罗盘（独立悬浮窗）」可以再开一个置顶罗盘：选择指针 / 刻度 / 玫瑰样式，拖动角度滑杆调整正北方向（0° 为正北）。罗盘与图例是两扇独立窗口，可同时显示、分别拖动，右键各自关闭。</p>
+    <p class="note">
       图例会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗不透明度」只影响浮窗本身。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
@@ -706,6 +788,7 @@ body.pip-body.no-fit #pip-root {
   const FONT_STACK = '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif';
   const PALETTE = ['#8fbf6a', '#4e8b5a', '#d8a48c', '#83b6d8', '#b8b8b8', '#e5c07b', '#c678dd', '#56b6c2'];
   const STROKE_STYLES = ['solid', 'dashed', 'dashdot'];
+  const COMPASS_STYLES = ['needle', 'ring', 'rose'];
   const STYLE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
     '<path d="M4 7h8M16 7h4M4 17h4M12 17h8"/><circle cx="14" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
   const DEFAULT_ITEMS = [
@@ -743,6 +826,11 @@ body.pip-body.no-fit #pip-root {
         exportScale: 2,
         floatOpacity: 1,
         fitPip: true
+      },
+      compass: {
+        style: 'needle',
+        angle: 0,
+        size: 96
       }
     };
   }
@@ -821,6 +909,7 @@ body.pip-body.no-fit #pip-root {
     var d = defaultState();
     var src = (raw && typeof raw === 'object') ? raw : {};
     var op = (src.options && typeof src.options === 'object') ? src.options : {};
+    var cp = (src.compass && typeof src.compass === 'object') ? src.compass : {};
     var items;
     if (Array.isArray(src.items)) {
       var seen = {};
@@ -851,6 +940,11 @@ body.pip-body.no-fit #pip-root {
         exportScale: [1, 2, 3].indexOf(Number(op.exportScale)) >= 0 ? Number(op.exportScale) : 2,
         floatOpacity: clampInt(Math.round(Number(op.floatOpacity) * 100), 20, 100, 100) / 100,
         fitPip: op.fitPip !== false
+      },
+      compass: {
+        style: COMPASS_STYLES.indexOf(cp.style) >= 0 ? cp.style : d.compass.style,
+        angle: clampInt(cp.angle, 0, 359, d.compass.angle),
+        size: clampInt(cp.size, 64, 160, d.compass.size)
       }
     };
   }
@@ -1119,6 +1213,26 @@ body.pip-body.no-fit #pip-root {
     floatBtn.title = on ? '关闭置顶悬浮窗' : '在系统最前层显示图例（无标题栏，可直接截图）';
   }
 
+  function syncCompassControls() {
+    var angle = $('compassAngleRange');
+    if (angle) angle.value = String(state.compass.angle);
+    var angleOut = $('compassAngleOut');
+    if (angleOut) angleOut.textContent = state.compass.angle + '°';
+    var size = $('compassSizeRange');
+    if (size) size.value = String(state.compass.size);
+    var sizeOut = $('compassSizeOut');
+    if (sizeOut) sizeOut.textContent = state.compass.size + 'px';
+    var seg = $('compassStyleSeg');
+    if (seg) {
+      var btns = seg.querySelectorAll('[data-style]');
+      for (var i = 0; i < btns.length; i++) {
+        var on = btns[i].getAttribute('data-style') === state.compass.style;
+        btns[i].classList.toggle('active', on);
+        btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    }
+  }
+
   function syncControls() {
     $('titleInput').value = state.title;
     $('showTitleChk').checked = state.showTitle;
@@ -1136,12 +1250,14 @@ body.pip-body.no-fit #pip-root {
     $('borderChk').checked = state.options.border;
     $('transparentChk').checked = state.options.transparentExport;
     $('fitPipChk').checked = state.options.fitPip;
+    syncCompassControls();
   }
 
   function renderAll() {
     syncControls();
     renderRows();
     renderOutputs();
+    renderCompassPreview();
   }
 
   function renderRows() {
@@ -1401,13 +1517,14 @@ body.pip-body.no-fit #pip-root {
     }
     updateSupportUI();
     updateFloatButton();
+    updateCompassButton();
     /* the "auto scale" switch only matters for the document-PiP fallback */
     var fitRow = $('fitPipRow');
     if (fitRow && vpipSupported()) fitRow.style.display = 'none';
-    /* the overlay is a separate always-on-top window: take it down with the page */
+    /* the overlays are separate always-on-top windows: take them down with the page */
     window.addEventListener('pagehide', function () {
-      if (!overlayShowing) return;
-      try { navigator.sendBeacon(bridgeUrl('/hide'), ''); } catch (e) { /* ignore */ }
+      if (!overlayShowing && !compassShowing) return;
+      try { navigator.sendBeacon(bridgeUrl('/hide-all'), ''); } catch (e) { /* ignore */ }
     });
     bindEvents();
     renderAll();
@@ -1773,6 +1890,247 @@ body.pip-body.no-fit #pip-root {
 
   /* ---------------- floating window / config ---------------- */
 
+  /* ---------------- compass ---------------- */
+
+  function compassStyleName(style) {
+    return COMPASS_STYLES.indexOf(style) >= 0 ? style : 'needle';
+  }
+
+  function compassHaloStroke(g, pathFn, width, color) {
+    g.save();
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.beginPath();
+    pathFn();
+    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.lineWidth = width + 2.4;
+    g.stroke();
+    g.beginPath();
+    pathFn();
+    g.strokeStyle = color;
+    g.lineWidth = width;
+    g.stroke();
+    g.restore();
+  }
+
+  function compassFill(g, pathFn, fill, outlineWidth) {
+    g.save();
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.beginPath();
+    pathFn();
+    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.lineWidth = (outlineWidth || 1) + 2.4;
+    g.stroke();
+    g.beginPath();
+    pathFn();
+    g.fillStyle = fill;
+    g.fill();
+    g.beginPath();
+    pathFn();
+    g.strokeStyle = '#1f2937';
+    g.lineWidth = outlineWidth || 1;
+    g.stroke();
+    g.restore();
+  }
+
+  function compassLabel(g, text, x, y, font) {
+    g.save();
+    g.font = font;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    g.lineWidth = 3;
+    g.strokeStyle = 'rgba(255,255,255,.92)';
+    g.strokeText(text, x, y);
+    g.fillStyle = '#1f2937';
+    g.fillText(text, x, y);
+    g.restore();
+  }
+
+  /* Three small, map-friendly compass roses. Everything is drawn with a white
+     halo behind dark shapes so it stays readable on both light and dark maps.
+     The whole rose rotates; 0° points north. */
+  function drawCompass(g, size, style, angle) {
+    var s = Math.max(32, Number(size) || 96);
+    var R = s * 0.34;
+    var ink = '#1f2937';
+    var north = '#b91c1c';
+    var light = '#f8fafc';
+    var muted = '#94a3b8';
+    var font = '700 ' + Math.max(10, Math.round(s * 0.135)) + 'px ' + FONT_STACK;
+    var mode = compassStyleName(style);
+
+    g.save();
+    g.translate(s / 2, s / 2);
+    g.rotate(((Number(angle) || 0) % 360) * Math.PI / 180);
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+
+    if (mode === 'ring') {
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink);
+      compassHaloStroke(g, function () { g.arc(0, 0, R * 0.78, 0, Math.PI * 2); }, 0.9, muted);
+      for (var i = 0; i < 12; i++) {
+        (function (a, major) {
+          var outer = R * 0.94;
+          var inner = major ? R * 0.80 : R * 0.86;
+          compassHaloStroke(g, function () {
+            g.moveTo(Math.sin(a) * inner, -Math.cos(a) * inner);
+            g.lineTo(Math.sin(a) * outer, -Math.cos(a) * outer);
+          }, major ? 1.3 : 0.9, ink);
+        })(i * Math.PI / 6, i % 3 === 0);
+      }
+      compassFill(g, function () {
+        g.moveTo(0, -R * 0.68);
+        g.lineTo(R * 0.10, 0);
+        g.lineTo(-R * 0.10, 0);
+        g.closePath();
+      }, north, 0.9);
+      compassFill(g, function () {
+        g.moveTo(0, R * 0.42);
+        g.lineTo(R * 0.075, 0);
+        g.lineTo(-R * 0.075, 0);
+        g.closePath();
+      }, light, 0.9);
+    } else if (mode === 'rose') {
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.2, ink);
+      var tip = R * 0.96;
+      var innerR = R * 0.28;
+      var starPath = function () {
+        g.moveTo(0, -tip);
+        g.lineTo(innerR * Math.SQRT1_2, -innerR * Math.SQRT1_2);
+        g.lineTo(tip, 0);
+        g.lineTo(innerR * Math.SQRT1_2, innerR * Math.SQRT1_2);
+        g.lineTo(0, tip);
+        g.lineTo(-innerR * Math.SQRT1_2, innerR * Math.SQRT1_2);
+        g.lineTo(-tip, 0);
+        g.lineTo(-innerR * Math.SQRT1_2, -innerR * Math.SQRT1_2);
+        g.closePath();
+      };
+      g.save();
+      g.beginPath();
+      starPath();
+      g.strokeStyle = 'rgba(255,255,255,.92)';
+      g.lineWidth = 3.6;
+      g.stroke();
+      g.restore();
+      for (var d = 0; d < 4; d++) {
+        var a0 = d * Math.PI / 2;
+        var prev = a0 - Math.PI / 4;
+        var next = a0 + Math.PI / 4;
+        var tipX = Math.sin(a0) * tip;
+        var tipY = -Math.cos(a0) * tip;
+        var p1x = Math.sin(prev) * innerR;
+        var p1y = -Math.cos(prev) * innerR;
+        var p2x = Math.sin(next) * innerR;
+        var p2y = -Math.cos(next) * innerR;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(p1x, p1y);
+        g.lineTo(tipX, tipY);
+        g.closePath();
+        g.fillStyle = d === 0 ? north : ink;
+        g.fill();
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(tipX, tipY);
+        g.lineTo(p2x, p2y);
+        g.closePath();
+        g.fillStyle = light;
+        g.fill();
+      }
+      g.save();
+      g.beginPath();
+      starPath();
+      g.strokeStyle = ink;
+      g.lineWidth = 1;
+      g.stroke();
+      g.restore();
+      g.beginPath();
+      g.arc(0, 0, Math.max(1.6, s * 0.022), 0, Math.PI * 2);
+      g.fillStyle = light;
+      g.fill();
+      g.strokeStyle = ink;
+      g.lineWidth = 0.9;
+      g.stroke();
+    } else {
+      compassHaloStroke(g, function () { g.arc(0, 0, R, 0, Math.PI * 2); }, 1.6, ink);
+      var tipN = R * 0.92;
+      var tailS = R * 0.92;
+      var halfW = R * 0.15;
+      var diamond = function () {
+        g.moveTo(0, -tipN);
+        g.lineTo(halfW, 0);
+        g.lineTo(0, tailS);
+        g.lineTo(-halfW, 0);
+        g.closePath();
+      };
+      g.save();
+      g.beginPath();
+      diamond();
+      g.strokeStyle = 'rgba(255,255,255,.92)';
+      g.lineWidth = 3.8;
+      g.stroke();
+      g.restore();
+      g.beginPath();
+      g.moveTo(0, -tipN);
+      g.lineTo(halfW, 0);
+      g.lineTo(0, 0);
+      g.lineTo(-halfW, 0);
+      g.closePath();
+      g.fillStyle = north;
+      g.fill();
+      g.beginPath();
+      g.moveTo(0, tailS);
+      g.lineTo(halfW, 0);
+      g.lineTo(0, 0);
+      g.lineTo(-halfW, 0);
+      g.closePath();
+      g.fillStyle = light;
+      g.fill();
+      g.beginPath();
+      diamond();
+      g.strokeStyle = ink;
+      g.lineWidth = 1;
+      g.stroke();
+      g.beginPath();
+      g.arc(0, 0, Math.max(1.6, s * 0.024), 0, Math.PI * 2);
+      g.fillStyle = ink;
+      g.fill();
+    }
+
+    compassLabel(g, 'N', 0, -R - s * 0.075, font);
+    g.restore();
+  }
+
+  function renderCompassCanvas(size, style, angle, scale) {
+    var s = clampInt(size, 64, 160, 96);
+    var safeScale = Math.max(0.5, Number(scale) || 1);
+    var cnv = document.createElement('canvas');
+    cnv.width = Math.max(1, Math.round(s * safeScale));
+    cnv.height = cnv.width;
+    var g = cnv.getContext('2d');
+    g.scale(safeScale, safeScale);
+    drawCompass(g, s, style, angle);
+    return cnv;
+  }
+
+  function renderCompassPreview() {
+    var canvas = $('compassCanvas');
+    if (!canvas) return;
+    var size = clampInt(state.compass.size, 64, 160, 96);
+    var dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    canvas.width = Math.max(1, Math.round(size * dpr));
+    canvas.height = canvas.width;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    var g = canvas.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.scale(dpr, dpr);
+    drawCompass(g, size, state.compass.style, state.compass.angle);
+  }
+
   /* ---------------- native overlay bridge (tools\legend-overlay.ps1) ----------------
      启动.bat starts a small invisible helper that listens on 127.0.0.1:8777. The
      editor POSTs the legend as a PNG and the helper paints it into a borderless,
@@ -1782,7 +2140,9 @@ body.pip-body.no-fit #pip-root {
 
   var BRIDGE_PORT = 8777;
   var overlayShowing = false;
+  var compassShowing = false;
   var overlayTimer = 0;
+  var compassTimer = 0;
   var overlayPoll = 0;
 
   function bridgeUrl(path) {
@@ -1836,13 +2196,13 @@ body.pip-body.no-fit #pip-root {
 
   function closeOverlay() {
     overlayShowing = false;
-    stopOverlayPoll();
     updateFloatButton();
     postOverlay(false).catch(function () { /* helper may already be gone */ });
+    if (!compassShowing) stopOverlayPoll();
   }
 
-  /* The card can be closed from its own right-click menu, so keep an eye on the
-     helper and restore the button state when the window disappears. */
+  /* The cards can be closed from their own right-click menu, so keep an eye on
+     the helper and restore the button state when a window disappears. */
   function stopOverlayPoll() {
     if (overlayPoll) {
       window.clearInterval(overlayPoll);
@@ -1851,22 +2211,25 @@ body.pip-body.no-fit #pip-root {
   }
 
   function startOverlayPoll() {
-    stopOverlayPoll();
+    if (overlayPoll) return;
     overlayPoll = window.setInterval(function () {
-      if (!overlayShowing) { stopOverlayPoll(); return; }
+      if (!overlayShowing && !compassShowing) { stopOverlayPoll(); return; }
       fetch(bridgeUrl('/state'), { cache: 'no-store' }).then(function (res) {
         return res.json();
       }).then(function (info) {
-        if (info && info.showing === false && overlayShowing) {
-          overlayShowing = false;
-          stopOverlayPoll();
-          updateFloatButton();
-        }
+        var legendOn = info && (typeof info.legend === 'boolean' ? info.legend : info.showing);
+        if (legendOn === false && overlayShowing) overlayShowing = false;
+        if (info && info.compass === false && compassShowing) compassShowing = false;
+        if (!overlayShowing && !compassShowing) stopOverlayPoll();
+        updateFloatButton();
+        updateCompassButton();
       }).catch(function () {
-        /* helper gone: treat the overlay as closed */
+        /* helper gone: treat both overlays as closed */
         overlayShowing = false;
+        compassShowing = false;
         stopOverlayPoll();
         updateFloatButton();
+        updateCompassButton();
       });
     }, 900);
   }
@@ -1894,6 +2257,86 @@ body.pip-body.no-fit #pip-root {
       if (vpipSupported()) openVideoPip();
       else openDocumentPip();
     });
+  }
+
+  /* ---------------- compass overlay bridge ----------------
+     The compass is a second, independent layered window in the same helper.
+     It has its own endpoint, position and show/hide state, so it never
+     interferes with the legend window. */
+
+  function updateCompassButton() {
+    var btn = $('compassBtn');
+    if (!btn) return;
+    var label = btn.querySelector('.btn-label');
+    btn.classList.toggle('active', compassShowing);
+    if (label) label.textContent = compassShowing ? '关闭罗盘' : '显示罗盘';
+    btn.title = compassShowing
+      ? '关闭置顶罗盘'
+      : '在系统最前层显示独立罗盘（无标题栏，可直接截图）';
+  }
+
+  function compassPngBase64() {
+    var scale = Math.max(1, window.devicePixelRatio || 1);
+    var cnv = renderCompassCanvas(state.compass.size, state.compass.style, state.compass.angle, scale);
+    /* Windows ignores mouse input over fully transparent pixels of a layered
+       window, so lift alpha=0 to 1: invisible, but draggable. */
+    var g = cnv.getContext('2d');
+    var img = g.getImageData(0, 0, cnv.width, cnv.height);
+    var data = img.data;
+    for (var i = 3; i < data.length; i += 4) {
+      if (data[i] === 0) data[i] = 1;
+    }
+    g.putImageData(img, 0, 0);
+    var url = cnv.toDataURL('image/png');
+    return url.slice(url.indexOf(',') + 1);
+  }
+
+  function postCompass(show) {
+    var payload = { show: show };
+    if (show) payload.png = compassPngBase64();
+    return fetch(bridgeUrl('/compass'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      if (!res.ok) throw new Error('bridge ' + res.status);
+      return res.json();
+    });
+  }
+
+  function closeCompass() {
+    compassShowing = false;
+    updateCompassButton();
+    postCompass(false).catch(function () { /* helper may already be gone */ });
+    if (!overlayShowing) stopOverlayPoll();
+  }
+
+  function refreshCompass() {
+    if (!compassShowing) return;
+    window.clearTimeout(compassTimer);
+    compassTimer = window.setTimeout(function () {
+      if (!compassShowing) return;
+      postCompass(true).catch(function () {
+        compassShowing = false;
+        updateCompassButton();
+      });
+    }, 120);
+  }
+
+  function openCompass() {
+    postCompass(true).then(function () {
+      compassShowing = true;
+      updateCompassButton();
+      startOverlayPoll();
+      toast('已置顶显示罗盘：拖动可移动，右键可关闭。');
+    }).catch(function () {
+      toast('罗盘置顶需要本地版：双击「启动.bat」打开后再试。');
+    });
+  }
+
+  function toggleCompass() {
+    if (compassShowing) closeCompass();
+    else openCompass();
   }
 
   /* ---------------- frameless float window (video Picture-in-Picture) ----------------
@@ -2162,6 +2605,7 @@ body.pip-body.no-fit #pip-root {
       state = normalizeState(JSON.parse(text));
       styleOpenId = null;
       renderAll();
+      refreshCompass();
       saveState();
       toast('配置已导入。');
     }).catch(function (err) {
@@ -2195,6 +2639,36 @@ body.pip-body.no-fit #pip-root {
     on('floatBtn', 'click', togglePip);
     on('exportBtn', 'click', exportPng);
     on('copyBtn', 'click', copyPng);
+
+    on('compassBtn', 'click', toggleCompass);
+    on('compassAngleRange', 'input', function (e) {
+      state.compass.angle = clampInt(e.target.value, 0, 359, 0);
+      $('compassAngleOut').textContent = state.compass.angle + '°';
+      renderCompassPreview();
+      refreshCompass();
+      saveState();
+    });
+    on('compassSizeRange', 'input', function (e) {
+      state.compass.size = clampInt(e.target.value, 64, 160, 96);
+      $('compassSizeOut').textContent = state.compass.size + 'px';
+      renderCompassPreview();
+      refreshCompass();
+      saveState();
+    });
+    var compassSeg = $('compassStyleSeg');
+    if (compassSeg) {
+      compassSeg.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-style]');
+        if (!btn) return;
+        var style = btn.getAttribute('data-style');
+        if (COMPASS_STYLES.indexOf(style) < 0) return;
+        state.compass.style = style;
+        syncCompassControls();
+        renderCompassPreview();
+        refreshCompass();
+        saveState();
+      });
+    }
 
     on('titleInput', 'input', function (e) {
       state.title = e.target.value;
@@ -2283,10 +2757,11 @@ body.pip-body.no-fit #pip-root {
       e.target.value = '';
     });
     on('resetBtn', 'click', function () {
-      if (!window.confirm('恢复为示例图例？当前内容会被替换。')) return;
+      if (!window.confirm('恢复为示例图例和罗盘？当前内容会被替换。')) return;
       state = defaultState();
       styleOpenId = null;
       renderAll();
+      refreshCompass();
       saveState();
       toast('已恢复示例。');
     });

@@ -1,10 +1,12 @@
-﻿# ScreenLegend - floating legend overlay
-# Runs invisibly next to the editor. The editor page POSTs a PNG of the legend
-# to http://127.0.0.1:8777/ and this script paints it into a borderless,
-# always-on-top, per-pixel-alpha window that is exactly the size of the image
-# (so a region screenshot contains the legend and nothing else).
+﻿# ScreenLegend - floating legend + compass overlays
+# Runs invisibly next to the editor. The editor page POSTs PNGs to
+# http://127.0.0.1:8777/legend and /compass; this script paints each into its
+# own borderless, always-on-top, per-pixel-alpha window that is exactly the
+# size of the image (so a region screenshot contains the graphic and nothing
+# else). The two windows are independent: separate bitmaps, positions and
+# show/hide state.
 #
-# Left-drag moves it (the OS does the dragging), right-click hides it,
+# Left-drag moves a window (the OS does the dragging), right-click hides it,
 # fully transparent pixels let clicks through to whatever is underneath.
 
 param([int]$Port = 8777)
@@ -126,28 +128,47 @@ function Send-Response($stream, $json) {
     $stream.Flush()
 }
 
-# ---------------------------------------------------------------- the overlay
+# ---------------------------------------------------------------- the overlay windows
+# Two independent layered windows: the legend card and the compass. They have
+# separate bitmaps, positions and show/hide state; painting or moving one never
+# touches the other.
 
-$script:form = New-Object System.Windows.Forms.Form
-$script:form.FormBorderStyle = 'None'
-$script:form.ShowInTaskbar = $false
-$script:form.TopMost = $true
-$script:form.StartPosition = 'Manual'
-$script:form.Text = 'ScreenLegendOverlay'
-$script:form.Width = 8
-$script:form.Height = 8
+function New-OverlayWindow([string]$title) {
+    $form = New-Object System.Windows.Forms.Form
+    $form.FormBorderStyle = 'None'
+    $form.ShowInTaskbar = $false
+    $form.TopMost = $true
+    $form.StartPosition = 'Manual'
+    $form.Text = $title
+    $form.Width = 8
+    $form.Height = 8
 
-# reading Handle creates the window without ever showing it, so starting the
-# helper cannot steal the foreground (and the IME) from the editor
-$script:hwnd = $script:form.Handle
-$ex = [SLOverlay]::GetWindowLong($script:hwnd, -20)
-# layered + tool window + no-activate (never steals focus from the map app)
-[SLOverlay]::SetWindowLong($script:hwnd, -20, ($ex -bor 0x00080000 -bor 0x00000080 -bor 0x08000000)) | Out-Null
+    # reading Handle creates the window without ever showing it, so starting the
+    # helper cannot steal the foreground (and the IME) from the editor
+    $hwnd = $form.Handle
+    $ex = [SLOverlay]::GetWindowLong($hwnd, -20)
+    # layered + tool window + no-activate (never steals focus from the map app)
+    [SLOverlay]::SetWindowLong($hwnd, -20, ($ex -bor 0x00080000 -bor 0x00000080 -bor 0x08000000)) | Out-Null
 
-$script:showing = $false
-$script:curBmp = $null
+    $hit = New-Object SLOverlayWindow
+    $hit.AssignHandle($hwnd)
 
-function Paint-Overlay([System.Drawing.Bitmap]$bmp, [int]$x, [int]$y) {
+    return @{
+        Form = $form
+        Hwnd = $hwnd
+        Hit = $hit
+        Showing = $false
+        W = 0
+        H = 0
+    }
+}
+
+$script:legendWin = New-OverlayWindow 'ScreenLegendOverlay'
+$script:compassWin = New-OverlayWindow 'ScreenLegendCompass'
+$script:legendWin.Hit.RightClicked = { Hide-Overlay $script:legendWin }
+$script:compassWin.Hit.RightClicked = { Hide-Overlay $script:compassWin }
+
+function Paint-Overlay($win, [System.Drawing.Bitmap]$bmp, [int]$x, [int]$y) {
     $screenDc = [SLOverlay]::GetDC([IntPtr]::Zero)
     $memDc = [SLOverlay]::CreateCompatibleDC($screenDc)
     $hBmp = $bmp.GetHbitmap([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
@@ -167,51 +188,53 @@ function Paint-Overlay([System.Drawing.Bitmap]$bmp, [int]$x, [int]$y) {
     $blend.BlendFlags = 0
     $blend.SourceConstantAlpha = 255
     $blend.AlphaFormat = 1
-    [SLOverlay]::UpdateLayeredWindow($script:hwnd, $screenDc, [ref]$dst, [ref]$size, $memDc, [ref]$src, 0, [ref]$blend, 2) | Out-Null
+    [SLOverlay]::UpdateLayeredWindow($win.Hwnd, $screenDc, [ref]$dst, [ref]$size, $memDc, [ref]$src, 0, [ref]$blend, 2) | Out-Null
 
     [SLOverlay]::SelectObject($memDc, $old) | Out-Null
     [SLOverlay]::DeleteObject($hBmp) | Out-Null
     [SLOverlay]::DeleteDC($memDc) | Out-Null
     [SLOverlay]::ReleaseDC([IntPtr]::Zero, $screenDc) | Out-Null
 
-    $script:curBmp = $bmp
+    $win.W = $bmp.Width
+    $win.H = $bmp.Height
 }
 
-function Current-Position() {
+function Current-Position($win) {
     $r = New-Object SLOverlay+RECT
-    [SLOverlay]::GetWindowRect($script:hwnd, [ref]$r) | Out-Null
+    [SLOverlay]::GetWindowRect($win.Hwnd, [ref]$r) | Out-Null
     return @($r.L, $r.T)
 }
 
-function Show-Overlay([System.Drawing.Bitmap]$bmp, [bool]$reposition) {
+function Show-Overlay($win, [System.Drawing.Bitmap]$bmp, [bool]$reposition, [string]$anchor) {
     $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-    if ($reposition -or -not $script:showing) {
+    if ($reposition -or -not $win.Showing) {
         $x = $wa.Right - $bmp.Width - 24
-        $y = $wa.Bottom - $bmp.Height - 60
+        if ($anchor -eq 'top-right') {
+            $y = $wa.Top + 60
+        } else {
+            $y = $wa.Bottom - $bmp.Height - 60
+        }
         if ($x -lt $wa.Left) { $x = $wa.Left }
         if ($y -lt $wa.Top) { $y = $wa.Top }
+        if (($y + $bmp.Height) -gt $wa.Bottom) { $y = [Math]::Max($wa.Top, $wa.Bottom - $bmp.Height) }
     } else {
-        $pos = Current-Position
+        $pos = Current-Position $win
         $x = $pos[0]
         $y = $pos[1]
     }
-    Paint-Overlay $bmp $x $y
-    # Showing / re-z-ordering the overlay must never activate it: stealing the
+    Paint-Overlay $win $bmp $x $y
+    # Showing / re-z-ordering an overlay must never activate it: stealing the
     # foreground would detach the editor's IME (Chinese input stops working
     # until the window is activated again).
-    if (-not $script:showing) { $script:form.Show() }
-    [SLOverlay]::SetWindowPos($script:hwnd, [IntPtr](-1), 0, 0, 0, 0, 0x0013) | Out-Null   # NOSIZE|NOMOVE|NOACTIVATE
-    $script:showing = $true
+    if (-not $win.Showing) { $win.Form.Show() }
+    [SLOverlay]::SetWindowPos($win.Hwnd, [IntPtr](-1), 0, 0, 0, 0, 0x0013) | Out-Null   # NOSIZE|NOMOVE|NOACTIVATE
+    $win.Showing = $true
 }
 
-function Hide-Overlay() {
-    $script:showing = $false
-    $script:form.Hide()
+function Hide-Overlay($win) {
+    $win.Showing = $false
+    $win.Form.Hide()
 }
-
-$hit = New-Object SLOverlayWindow
-$hit.RightClicked = { Hide-Overlay }
-$hit.AssignHandle($script:hwnd)
 
 # ---------------------------------------------------------------- pump
 
@@ -232,23 +255,49 @@ $timer.Add_Tick({
             }
             $reply = '{"ok":true}'
             if ($path -like '/state*') {
-                $reply = '{"ok":true,"showing":' + $(if ($script:showing) { 'true' } else { 'false' }) + '}'
+                $legendOn = if ($script:legendWin.Showing) { 'true' } else { 'false' }
+                $compassOn = if ($script:compassWin.Showing) { 'true' } else { 'false' }
+                $reply = '{"ok":true,"showing":' + $legendOn + ',"legend":' + $legendOn + ',"compass":' + $compassOn + '}'
+            } elseif ($path -like '/hide-compass*') {
+                Hide-Overlay $script:compassWin
+                $reply = '{"ok":true,"showing":false,"compass":false}'
+            } elseif ($path -like '/hide-all*') {
+                Hide-Overlay $script:legendWin
+                Hide-Overlay $script:compassWin
+                $reply = '{"ok":true,"showing":false,"legend":false,"compass":false}'
+            } elseif ($path -like '/hide*') {
+                Hide-Overlay $script:legendWin
+                $reply = '{"ok":true,"showing":false,"legend":false}'
             } elseif ($path -like '/legend*' -and $req.Body) {
                 $data = $req.Body | ConvertFrom-Json
                 if ($data.show -eq $false) {
-                    Hide-Overlay
+                    Hide-Overlay $script:legendWin
                     $reply = '{"ok":true,"showing":false}'
                 } elseif ($data.png) {
                     $raw = [System.Convert]::FromBase64String($data.png)
                     $ms = New-Object System.IO.MemoryStream(, $raw)
                     $bmp = [System.Drawing.Bitmap]::FromStream($ms)
-                    $changed = ($null -eq $script:curBmp) -or ($bmp.Width -ne $script:curBmp.Width) -or ($bmp.Height -ne $script:curBmp.Height)
-                    Show-Overlay $bmp $changed
-                    $reply = '{"ok":true,"showing":true,"w":' + $bmp.Width + ',"h":' + $bmp.Height + '}'
+                    $changed = ($script:legendWin.W -eq 0) -or ($bmp.Width -ne $script:legendWin.W) -or ($bmp.Height -ne $script:legendWin.H)
+                    Show-Overlay $script:legendWin $bmp $changed 'bottom-right'
+                    $reply = '{"ok":true,"showing":true,"w":' + $script:legendWin.W + ',"h":' + $script:legendWin.H + '}'
+                    $bmp.Dispose()
+                    $ms.Dispose()
                 }
-            } elseif ($path -like '/hide*') {
-                Hide-Overlay
-                $reply = '{"ok":true,"showing":false}'
+            } elseif ($path -like '/compass*' -and $req.Body) {
+                $data = $req.Body | ConvertFrom-Json
+                if ($data.show -eq $false) {
+                    Hide-Overlay $script:compassWin
+                    $reply = '{"ok":true,"compass":false}'
+                } elseif ($data.png) {
+                    $raw = [System.Convert]::FromBase64String($data.png)
+                    $ms = New-Object System.IO.MemoryStream(, $raw)
+                    $bmp = [System.Drawing.Bitmap]::FromStream($ms)
+                    $changed = ($script:compassWin.W -eq 0) -or ($bmp.Width -ne $script:compassWin.W) -or ($bmp.Height -ne $script:compassWin.H)
+                    Show-Overlay $script:compassWin $bmp $changed 'top-right'
+                    $reply = '{"ok":true,"compass":true,"w":' + $script:compassWin.W + ',"h":' + $script:compassWin.H + '}'
+                    $bmp.Dispose()
+                    $ms.Dispose()
+                }
             }
             Send-Response $req.Stream $reply
             $script:lastActivity = Get-Date
