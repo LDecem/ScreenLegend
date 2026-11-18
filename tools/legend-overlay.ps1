@@ -19,9 +19,11 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 public class SLOverlay {
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
     [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr GetDC(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
@@ -37,6 +39,13 @@ public class SLOverlay {
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT r);
     [DllImport("user32.dll")] public static extern bool ScreenToClient(IntPtr hWnd, ref POINT p);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+    [DllImport("user32.dll")] public static extern int GetClassName(IntPtr hWnd, StringBuilder text, int count);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     public struct POINT { public int X; public int Y; }
     public struct SIZE { public int cx; public int cy; }
@@ -236,6 +245,52 @@ function Hide-Overlay($win) {
     $win.Form.Hide()
 }
 
+$script:editorHwnd = [IntPtr]::Zero
+
+# The editor is a browser window. Find it by its page title and Chromium class
+# so /editor/hide does not depend on which window happens to be foreground
+# (the EyeDropper overlay may already be open when we minimize).
+function Find-EditorWindow {
+    $script:editorHwnd = [IntPtr]::Zero
+    [SLOverlay]::EnumWindows({
+        param($h, $l)
+        if ([SLOverlay]::IsWindowVisible($h)) {
+            $title = New-Object System.Text.StringBuilder 512
+            [SLOverlay]::GetWindowText($h, $title, 512) | Out-Null
+            $text = $title.ToString()
+            if ($text -like '*ScreenLegend*' -and $text -notlike '*ScreenLegendOverlay*' -and $text -notlike '*ScreenLegendCompass*') {
+                $cls = New-Object System.Text.StringBuilder 256
+                [SLOverlay]::GetClassName($h, $cls, 256) | Out-Null
+                if ($cls.ToString() -like 'Chrome_WidgetWin*') {
+                    $script:editorHwnd = $h
+                    return $false
+                }
+            }
+        }
+        return $true
+    }, [IntPtr]::Zero) | Out-Null
+    return $script:editorHwnd
+}
+
+function Hide-Editor {
+    $hwnd = Find-EditorWindow
+    if ($hwnd -eq [IntPtr]::Zero) { return $false }
+    $script:editorHwnd = $hwnd
+    [SLOverlay]::ShowWindow($hwnd, 6) | Out-Null   # SW_MINIMIZE
+    return $true
+}
+
+function Show-Editor {
+    $hwnd = $script:editorHwnd
+    if ($hwnd -eq [IntPtr]::Zero) { return $false }
+    if ([SLOverlay]::IsWindow($hwnd)) {
+        [SLOverlay]::ShowWindow($hwnd, 9) | Out-Null   # SW_RESTORE
+        [SLOverlay]::SetForegroundWindow($hwnd) | Out-Null
+    }
+    $script:editorHwnd = [IntPtr]::Zero
+    return $true
+}
+
 # ---------------------------------------------------------------- pump
 
 $script:lastActivity = Get-Date
@@ -258,6 +313,13 @@ $timer.Add_Tick({
                 $legendOn = if ($script:legendWin.Showing) { 'true' } else { 'false' }
                 $compassOn = if ($script:compassWin.Showing) { 'true' } else { 'false' }
                 $reply = '{"ok":true,"showing":' + $legendOn + ',"legend":' + $legendOn + ',"compass":' + $compassOn + '}'
+            } elseif ($path -like '/editor/hide*') {
+                $hidden = Hide-Editor
+                $hiddenJson = if ($hidden) { 'true' } else { 'false' }
+                $reply = '{"ok":true,"hidden":' + $hiddenJson + '}'
+            } elseif ($path -like '/editor/show*') {
+                Show-Editor | Out-Null
+                $reply = '{"ok":true}'
             } elseif ($path -like '/hide-compass*') {
                 Hide-Overlay $script:compassWin
                 $reply = '{"ok":true,"showing":false,"compass":false}'
