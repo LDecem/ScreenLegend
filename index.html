@@ -693,7 +693,7 @@ body.pip-body.no-fit #pip-root {
 </header>
 
 <div class="paste-prompt" id="pastePrompt" role="status" hidden>
-  <span>当前浏览器没有系统取色器：<strong>先截图</strong>，再回到这里按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴取色。</span>
+  <span>没有可用的全屏取色：<strong>先截图</strong>，再回到这里按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴取色；左键取色，右键取消。</span>
   <div class="paste-prompt-actions">
     <button class="btn mini" id="pastePromptFileBtn" type="button">选择图片</button>
     <button class="btn mini" id="pastePromptCancelBtn" type="button">取消</button>
@@ -826,7 +826,7 @@ body.pip-body.no-fit #pip-root {
           <span>大小 <output id="compassSizeOut">96px</output></span>
           <input type="range" id="compassSizeRange" min="64" max="160" step="4">
         </label>
-        <p class="hint">罗盘是独立置顶窗，默认在屏幕右上角；拖动可移动，右键关闭。浅色卡片和图例默认样式一致，透明模式只保留罗盘图形。</p>
+        <p class="hint">罗盘是独立置顶窗，默认在屏幕右上角；拖动可移动，右键打开快捷设置（样式 / 角度 / 背景不透明度），最后一项关闭罗盘。浅色卡片和图例默认样式一致，透明模式只保留罗盘图形。</p>
       </div>
     </div>
 
@@ -876,7 +876,7 @@ body.pip-body.no-fit #pip-root {
       <button class="icon-btn" id="helpCloseBtn" type="button" title="关闭">×</button>
     </div>
     <ol>
-      <li>点击 <strong>取色并添加</strong>：有系统级取色器时直接在地图上点色（本地版会自动最小化编辑器，取完恢复）；没有时（Firefox / Safari / 部分 360）页面顶部会出现兼容提示，截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴，再点图片取色。</li>
+      <li>点击 <strong>取色并添加</strong>：本地版会先让编辑器让开，然后打开全屏取色层，<strong>左键取色、右键或 <kbd>Esc</kbd> 取消</strong>，取完自动恢复编辑器。没有本地版时用浏览器的取色器；Firefox / Safari / 部分 360 没有取色器，页面顶部会出现兼容提示，截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴，再点图片取色。</li>
       <li>在新增的一行里输入分类名称；继续取色，直到图例完整。</li>
       <li>点击顶部的 <strong>浮动图例</strong>：会弹出一个<strong>没有标题栏、没有按钮</strong>的图例小窗，永远盖在其他窗口最上层。把它拖到地图空白处，然后截图即可。</li>
       <li>用 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 或 PixPin/ShareX 做<strong>区域截图</strong>。</li>
@@ -887,9 +887,9 @@ body.pip-body.no-fit #pip-root {
     <p class="note">
       没有系统级取色器时，也可以随时截图后按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）把截图粘贴到工具里，点击图片取色；或者直接输入 HEX。</p>
     <p class="note">
-      左侧分为「图例」和「罗盘」两个设置页，点标签切换。顶部的<strong>浮动图例</strong> / <strong>浮动罗盘</strong>按钮始终可见，可以随时开/关两扇独立窗口。罗盘页可选指针 / 刻度 / 玫瑰，浅色 / 深色 / 透明卡片，并可调底色不透明度、角度（0° 为正北）和大小；罗盘与图例可同时显示、分别拖动、右键各自关闭。</p>
+      左侧分为「图例」和「罗盘」两个设置页，点标签切换。顶部的<strong>浮动图例</strong> / <strong>浮动罗盘</strong>按钮始终可见，可以随时开/关两扇独立窗口。罗盘页可选指针 / 刻度 / 玫瑰，浅色 / 深色 / 透明卡片，并可调底色不透明度、角度（0° 为正北）和大小；罗盘与图例可同时显示、分别拖动，右键各自打开快捷设置（样式 / 角度 / 背景不透明度 / 关闭）。</p>
     <p class="note">
-      图例和罗盘配置会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动、右键可关闭，尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗背景不透明度」只改背景，文字和符号保持不透明，也不影响导出的 PNG。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
+      图例和罗盘配置会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动，右键打开快捷设置（显示标题 / 列数 / 背景不透明度 / 关闭），尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗背景不透明度」只改背景，文字和符号保持不透明，也不影响导出的 PNG。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
     </div>
@@ -902,7 +902,7 @@ body.pip-body.no-fit #pip-root {
       <h2>粘贴截图取色</h2>
       <button class="icon-btn" id="pasteCloseBtn" type="button" title="关闭">×</button>
     </div>
-    <p class="dialog-tip">按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴截图，或把图片拖到这里；也可以选择图片文件。</p>
+    <p class="dialog-tip">按 <kbd>Ctrl</kbd>+<kbd>V</kbd>（macOS <kbd>⌘</kbd>+<kbd>V</kbd>）粘贴截图，或把图片拖到这里；也可以选择图片文件。左键点击图片取色，右键取消。</p>
     <div class="paste-stage" id="pasteStage" tabindex="0">
       <canvas id="pasteCanvas" hidden></canvas>
       <div class="paste-empty" id="pasteEmpty">截图后按 Ctrl+V 粘贴到这里<br><span>或拖入图片文件</span></div>
@@ -1384,9 +1384,14 @@ body.pip-body.no-fit #pip-root {
   var pasteImageReady = false;
   var pastePromptActive = false;
   var pastePromptCallback = null;
+  var helperReady = false;
 
   var hasEyeDropper = typeof window.EyeDropper === 'function';
   var hasPip = !!(window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function');
+
+  function canScreenPick() {
+    return helperReady || hasEyeDropper;
+  }
 
   function setChip(el, ok, okText, badText) {
     if (!el) return;
@@ -1395,17 +1400,19 @@ body.pip-body.no-fit #pip-root {
   }
 
   function updateSupportUI() {
-    setChip(eyeChip, hasEyeDropper, '全屏取色 ✓', '粘贴截图取色');
+    setChip(eyeChip, canScreenPick(), '全屏取色 ✓', '粘贴截图取色');
     var canFloat = vpipSupported() || hasPip;
     setChip(pipChip, canFloat, '置顶悬浮 ✓', '悬浮不可用');
 
     var pickBtn = $('pickAddBtn');
     if (pickBtn) {
       var pickLabel = pickBtn.querySelector('span');
-      if (pickLabel) pickLabel.textContent = hasEyeDropper ? '取色并添加' : '粘贴截图取色';
-      pickBtn.title = hasEyeDropper
-        ? '用系统级取色器从屏幕上取色，并新增一行'
-        : '截图后按 Ctrl+V，点击图片取色';
+      if (pickLabel) pickLabel.textContent = canScreenPick() ? '取色并添加' : '粘贴截图取色';
+      pickBtn.title = helperReady
+        ? '从屏幕上取色并新增一行（左键取色，右键取消）'
+        : (hasEyeDropper
+          ? '用系统级取色器从屏幕上取色，并新增一行'
+          : '截图后按 Ctrl+V，点击图片取色');
     }
 
     if (compatWarning) {
@@ -1531,12 +1538,12 @@ body.pip-body.no-fit #pip-root {
       }
     }
     if (!state.items.length) {
-      rowsEl.innerHTML = '<div class="rows-empty">' + (hasEyeDropper
+      rowsEl.innerHTML = '<div class="rows-empty">' + (canScreenPick()
         ? '还没有分类。点击「取色并添加」，在地图上点一下即可开始。'
         : '还没有分类。点击「粘贴截图取色」，或截图后按 Ctrl+V 开始。') + '</div>';
       return;
     }
-    var pickTitle = hasEyeDropper ? '点击全屏取色' : '点击后粘贴截图取色';
+    var pickTitle = canScreenPick() ? '点击全屏取色（右键取消）' : '点击后粘贴截图取色';
     rowsEl.innerHTML = state.items.map(function (it, idx) {
       var last = state.items.length - 1;
       var open = styleOpenId === it.id;
@@ -1790,9 +1797,15 @@ body.pip-body.no-fit #pip-root {
       if (!overlayShowing && !compassShowing) return;
       try { navigator.sendBeacon(bridgeUrl('/hide-all'), ''); } catch (e) { /* ignore */ }
     });
+    /* coming back to the page is a good moment to pick up a helper that was
+       started after the page loaded */
+    window.addEventListener('focus', function () {
+      if (!helperReady && !overlayShowing && !compassShowing) probeHelper();
+    });
     bindEvents();
     renderAll();
     setTab(activeTab);
+    probeHelper();
   }
 
   /* ---------------- item actions ---------------- */
@@ -1898,14 +1911,14 @@ body.pip-body.no-fit #pip-root {
   }
 
   function pickAndAdd() {
-    if (!hasEyeDropper) {
+    if (!canScreenPick()) {
       armPastePick(defaultPasteAdd);
       return;
     }
-    openEyeDropper().then(function (result) {
-      var color = normalizeHex(result && result.sRGBHex) || nextColor();
-      addItem(color, true);
-      toast('已取色 ' + color);
+    pickFromScreen().then(function (color) {
+      var picked = color || nextColor();
+      addItem(picked, true);
+      toast('已取色 ' + picked);
     }).catch(function (err) {
       if (err && err.name === 'AbortError') return;
       console.error(err);
@@ -1946,12 +1959,11 @@ body.pip-body.no-fit #pip-root {
   function pickForItem(id) {
     var item = findItem(id);
     if (!item) return;
-    if (!hasEyeDropper) {
+    if (!canScreenPick()) {
       armPastePick(function (color) { applyPickedColor(id, color); });
       return;
     }
-    openEyeDropper().then(function (result) {
-      var color = normalizeHex(result && result.sRGBHex);
+    pickFromScreen().then(function (color) {
       if (color) applyPickedColor(id, color);
     }).catch(function (err) {
       if (err && err.name === 'AbortError') return;
@@ -1963,12 +1975,11 @@ body.pip-body.no-fit #pip-root {
   function pickStrokeForItem(id) {
     var item = findItem(id);
     if (!item) return;
-    if (!hasEyeDropper) {
+    if (!canScreenPick()) {
       armPastePick(function (color) { applyPickedStrokeColor(id, color); });
       return;
     }
-    openEyeDropper().then(function (result) {
-      var color = normalizeHex(result && result.sRGBHex);
+    pickFromScreen().then(function (color) {
       if (color) applyPickedStrokeColor(id, color);
     }).catch(function (err) {
       if (err && err.name === 'AbortError') return;
@@ -2066,7 +2077,7 @@ body.pip-body.no-fit #pip-root {
       }
       pasteImageReady = true;
       if (pasteEmpty) pasteEmpty.hidden = true;
-      if (pasteStatus) pasteStatus.textContent = '点击图片取色';
+      if (pasteStatus) pasteStatus.textContent = '左键取色 · 右键取消';
       URL.revokeObjectURL(url);
     };
     img.onerror = function () {
@@ -2095,7 +2106,7 @@ body.pip-body.no-fit #pip-root {
       pastePreview.hidden = false;
       pastePreview.style.background = sample.hex;
     }
-    if (pasteStatus) pasteStatus.textContent = sample.hex + ' · 点击取色';
+    if (pasteStatus) pasteStatus.textContent = sample.hex + ' · 左键取色';
   }
 
   function finishPastePick(color) {
@@ -2117,57 +2128,79 @@ body.pip-body.no-fit #pip-root {
     toast('已取色 ' + color);
   }
 
-  function hideEditorForPick() {
-    return new Promise(function (resolve) {
-      var settled = false;
-      var timer = window.setTimeout(function () {
-        if (settled) return;
-        settled = true;
-        resolve(false);
-      }, 400);
-      fetch(bridgeUrl('/editor/hide'), { cache: 'no-store' }).then(function (res) {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timer);
-        resolve(!!res && res.ok);
-      }).catch(function () {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timer);
-        resolve(false);
+  /* ---------------- screen picking ----------------
+     With the local helper running, picking happens in a native full-screen
+     picker owned by the helper: the editor steps aside, the screen is captured,
+     and right-click is a real cancel. Without the helper (e.g. the GitHub Pages
+     build) the browser EyeDropper is used, where Esc is the only cancel. */
+
+  function helperPick() {
+    return fetch(bridgeUrl('/pick'), { method: 'POST', body: '' }).then(function (res) {
+      return res.json();
+    }).then(function (info) {
+      if (!info || !info.ok) throw new Error('pick unavailable');
+      if (info.cancelled) {
+        var err = new Error('pick cancelled');
+        err.name = 'AbortError';
+        throw err;
+      }
+      var hex = normalizeHex(info.hex);
+      if (!hex) throw new Error('pick unavailable');
+      return hex;
+    });
+  }
+
+  function eyeDropperPick() {
+    return new window.EyeDropper().open().then(function (result) {
+      return normalizeHex(result && result.sRGBHex);
+    });
+  }
+
+  function pickFromScreen() {
+    if (helperReady) {
+      return helperPick().catch(function (err) {
+        if (err && err.name === 'AbortError') throw err;
+        helperReady = false;
+        updateSupportUI();
+        if (hasEyeDropper) return eyeDropperPick();
+        throw err;
       });
-    });
-  }
-
-  function showEditorAfterPick() {
-    fetch(bridgeUrl('/editor/show'), { cache: 'no-store' }).catch(function () { /* helper may not be running */ });
-  }
-
-  /* Keep the EyeDropper call inside the click's user gesture. Hide the editor a
-     moment later, once the system picker overlay is up, then restore it when
-     the user picks or cancels. */
-  function openEyeDropper() {
-    var dropper = new window.EyeDropper();
-    var picked = dropper.open();
-    var finished = false;
-    var hidePromise = null;
-    var hideTimer = window.setTimeout(function () {
-      if (finished) return;
-      hidePromise = hideEditorForPick();
-    }, 160);
-    function done() {
-      finished = true;
-      window.clearTimeout(hideTimer);
-      if (hidePromise) hidePromise.then(function () { showEditorAfterPick(); });
-      else showEditorAfterPick();
     }
-    return picked.then(function (result) {
-      done();
-      return result;
-    }, function (err) {
-      done();
-      throw err;
+    if (hasEyeDropper) return eyeDropperPick();
+    return Promise.reject(new Error('no screen picker'));
+  }
+
+  /* The helper takes a moment to start and may be started after the page. Probe
+     again for a while so the very first pick does not fall back to the
+     EyeDropper (which cannot cancel on right-click). */
+  var helperProbeTimer = 0;
+  var helperProbeTries = 0;
+
+  function probeHelper() {
+    window.clearTimeout(helperProbeTimer);
+    helperProbeTimer = 0;
+    fetch(bridgeUrl('/state'), { cache: 'no-store' }).then(function (res) {
+      return res.json();
+    }).then(function (info) {
+      var ready = !!(info && info.ok);
+      helperProbeTries = 0;
+      if (ready !== helperReady) {
+        helperReady = ready;
+        updateSupportUI();
+        renderRows();
+      }
+      if (!ready) scheduleHelperProbe();
+    }).catch(function () {
+      scheduleHelperProbe();
     });
+  }
+
+  function scheduleHelperProbe() {
+    if (helperReady || overlayShowing || compassShowing) return;
+    if (helperProbeTries >= 15) return;
+    helperProbeTries += 1;
+    window.clearTimeout(helperProbeTimer);
+    helperProbeTimer = window.setTimeout(probeHelper, 1000);
   }
 
   /* ---------------- PNG export ---------------- */
@@ -2695,7 +2728,14 @@ body.pip-body.no-fit #pip-root {
 
   function postOverlay(show) {
     var payload = { show: show };
-    if (show) payload.png = overlayPngBase64();
+    if (show) {
+      payload.png = overlayPngBase64();
+      payload.menu = {
+        showTitle: state.showTitle,
+        columns: state.options.columns,
+        opacity: Math.round((state.options.floatOpacity == null ? 1 : state.options.floatOpacity) * 100)
+      };
+    }
     return fetch(bridgeUrl('/legend'), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
@@ -2732,6 +2772,7 @@ body.pip-body.no-fit #pip-root {
         var legendOn = info && (typeof info.legend === 'boolean' ? info.legend : info.showing);
         if (legendOn === false && overlayShowing) overlayShowing = false;
         if (info && info.compass === false && compassShowing) compassShowing = false;
+        if (info && info.command) applyBridgeCommand(info.command);
         if (!overlayShowing && !compassShowing) stopOverlayPoll();
         updateFloatButton();
         updateCompassButton();
@@ -2758,12 +2799,45 @@ body.pip-body.no-fit #pip-root {
     }, 120);
   }
 
+  function applyBridgeCommand(cmd) {
+    if (!cmd || !cmd.target) return;
+    if (cmd.target === 'legend') {
+      if (cmd.action === 'showTitle') {
+        state.showTitle = !!cmd.value;
+      } else if (cmd.action === 'columns') {
+        state.options.columns = clampInt(cmd.value, 1, 4, state.options.columns);
+      } else if (cmd.action === 'opacity') {
+        state.options.floatOpacity = clampInt(Math.round(Number(cmd.value)), 0, 100, 100) / 100;
+      } else {
+        return;
+      }
+      syncControls();
+      renderOutputs();
+      saveState();
+    } else if (cmd.target === 'compass') {
+      if (cmd.action === 'style' && COMPASS_STYLES.indexOf(cmd.value) >= 0) {
+        state.compass.style = cmd.value;
+      } else if (cmd.action === 'angle') {
+        state.compass.angle = clampInt(cmd.value, 0, 359, state.compass.angle);
+      } else if (cmd.action === 'opacity') {
+        state.compass.opacity = clampInt(Math.round(Number(cmd.value)), 0, 100, 100) / 100;
+      } else {
+        return;
+      }
+      syncCompassControls();
+      renderCompassPreview();
+      refreshCompass();
+      saveState();
+    }
+  }
+
   function openOverlay() {
     postOverlay(true).then(function () {
       overlayShowing = true;
+      if (!helperReady) { helperReady = true; updateSupportUI(); }
       updateFloatButton();
       startOverlayPoll();
-      toast('已置顶显示图例：拖动可移动，右键可关闭。');
+      toast('已置顶显示图例：拖动可移动，右键可设置。');
     }).catch(function () {
       /* helper not running (e.g. index.html opened directly) — use the browser fallback */
       if (vpipSupported()) openVideoPip();
@@ -2805,7 +2879,14 @@ body.pip-body.no-fit #pip-root {
 
   function postCompass(show) {
     var payload = { show: show };
-    if (show) payload.png = compassPngBase64();
+    if (show) {
+      payload.png = compassPngBase64();
+      payload.menu = {
+        style: state.compass.style,
+        angle: state.compass.angle,
+        opacity: Math.round((state.compass.opacity == null ? 1 : state.compass.opacity) * 100)
+      };
+    }
     return fetch(bridgeUrl('/compass'), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
@@ -2838,9 +2919,10 @@ body.pip-body.no-fit #pip-root {
   function openCompass() {
     postCompass(true).then(function () {
       compassShowing = true;
+      if (!helperReady) { helperReady = true; updateSupportUI(); }
       updateCompassButton();
       startOverlayPoll();
-      toast('已置顶显示罗盘：拖动可移动，右键可关闭。');
+      toast('已置顶显示罗盘：拖动可移动，右键可设置。');
     }).catch(function () {
       toast('罗盘置顶需要本地版：双击「启动.bat」打开后再试。');
     });
@@ -3329,6 +3411,16 @@ body.pip-body.no-fit #pip-root {
       });
       pasteDialog.addEventListener('click', function (e) {
         if (e.target === pasteDialog) pasteDialog.close();
+      });
+      pasteDialog.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        pasteDialog.close();
+      });
+    }
+    if (pastePrompt) {
+      pastePrompt.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        disarmPastePick();
       });
     }
     on('pasteCloseBtn', 'click', function () { if (pasteDialog) pasteDialog.close(); });

@@ -12,7 +12,22 @@ rem borderless always-on-top legend window). A second copy exits by itself
 rem because the port is already taken.
 if exist "%~dp0tools\legend-overlay.ps1" (
   start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0tools\legend-overlay.ps1"
+
+  rem PowerShell needs a moment before the helper answers. Wait for it, so the
+  rem very first pick already uses the native picker (which supports
+  rem right-click cancel) instead of the browser EyeDropper fallback.
+  where curl >nul 2>nul
+  if errorlevel 1 (
+    ping -n 3 127.0.0.1 >nul
+    goto helperReady
+  )
+  for /l %%i in (1,1,12) do (
+    curl -s -o nul --max-time 1 http://127.0.0.1:8777/state
+    if not errorlevel 1 goto helperReady
+    ping -n 2 127.0.0.1 >nul
+  )
 )
+:helperReady
 
 set "URL=file:///%HTML:\=/%"
 set "EDGE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
