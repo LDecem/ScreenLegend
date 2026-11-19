@@ -52,6 +52,7 @@ public class SLOverlay {
     [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
     [DllImport("user32.dll")] public static extern int GetClassName(IntPtr hWnd, StringBuilder text, int count);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -111,6 +112,7 @@ public class SLPicker : Form {
     int mx = -1;
     int my = -1;
     bool done = false;
+    bool leftDown = false;
     bool rightDown = false;
     Rectangle lastLoupe = Rectangle.Empty;
     Rectangle lastInfo = Rectangle.Empty;
@@ -287,6 +289,7 @@ public class SLPicker : Form {
     protected override void OnMouseDown(MouseEventArgs e) {
         base.OnMouseDown(e);
         if (e.Button == MouseButtons.Left) {
+            leftDown = true;
             mx = e.X;
             my = e.Y;
             lastLoupe = LoupeRect();
@@ -299,14 +302,20 @@ public class SLPicker : Form {
 
     /* Finish on button-up, not button-down: the picker is still the window under
        the cursor when the release happens, so the click (and the context menu a
-       right release would otherwise open) never reaches the app underneath. */
+       right release would otherwise open) never reaches the app underneath.
+       A release without a matching press is ignored: the picker can appear while
+       the double-click that opened it is still being released, and that release
+       must not pick a colour or close the window. */
     protected override void OnMouseUp(MouseEventArgs e) {
         base.OnMouseUp(e);
         if (e.Button == MouseButtons.Left) {
+            if (!leftDown) return;
+            leftDown = false;
             mx = e.X;
             my = e.Y;
             Finish(true);
-        } else if (e.Button == MouseButtons.Right && rightDown) {
+        } else if (e.Button == MouseButtons.Right) {
+            if (!rightDown) return;
             rightDown = false;
             Finish(false);
         }
@@ -335,6 +344,25 @@ public class SLPicker : Form {
 "@
 
 [SLOverlay]::SetProcessDPIAware() | Out-Null
+
+# Small rotating log (temp folder) for failures that are otherwise invisible:
+# the helper is windowless, so a thrown error in an interaction would silently
+# do nothing. Keep the last ~200 KB.
+$script:logPath = Join-Path $env:TEMP 'ScreenLegend-helper.log'
+
+function Write-Log([string]$message) {
+    try {
+        if (Test-Path -LiteralPath $script:logPath) {
+            if ((Get-Item -LiteralPath $script:logPath).Length -gt 200000) {
+                Remove-Item -LiteralPath $script:logPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        $line = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff') + '  ' + $message
+        Add-Content -LiteralPath $script:logPath -Value $line -Encoding UTF8
+    } catch {
+        # logging must never break the helper
+    }
+}
 
 # ---------------------------------------------------------------- http server
 
@@ -556,11 +584,19 @@ function Invoke-ScreenPick {
     $form = $null
     try {
         # Step out of the way first: the sampled image must show what was
-        # underneath the editor, not the editor card itself.
+        # underneath the editor, not the editor card itself. If the editor is
+        # already minimised it is left alone, so the window state is exactly the
+        # same before and after the pick.
         if ($hwnd -ne [IntPtr]::Zero) {
-            [SLOverlay]::ShowWindow($hwnd, 6) | Out-Null   # SW_MINIMIZE
-            $hidden = $true
-            Start-Sleep -Milliseconds 280
+            if ([SLOverlay]::IsIconic($hwnd)) {
+                Write-Log 'pick: editor already minimised, left as is'
+            } else {
+                [SLOverlay]::ShowWindow($hwnd, 6) | Out-Null   # SW_MINIMIZE
+                $hidden = $true
+                Start-Sleep -Milliseconds 280
+            }
+        } else {
+            Write-Log 'pick: editor window not found'
         }
 
         $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen
@@ -575,7 +611,9 @@ function Invoke-ScreenPick {
         $form = New-Object SLPicker
         $form.Shot = $shot
         $form.Bounds = $vs
+        Write-Log ('pick: showing picker ' + $vs.Width + 'x' + $vs.Height)
         [void]$form.ShowDialog()
+        Write-Log ('pick: closed cancelled=' + $form.Cancelled)
 
         if ($form.Cancelled) { return @{ cancelled = $true } }
         $c = $form.Picked
@@ -583,6 +621,9 @@ function Invoke-ScreenPick {
             cancelled = $false
             hex = '#' + $c.R.ToString('X2') + $c.G.ToString('X2') + $c.B.ToString('X2')
         }
+    } catch {
+        Write-Log ('pick error: ' + $_.Exception.Message)
+        throw
     } finally {
         if ($form) { $form.Dispose() }
         if ($shot) { $shot.Dispose() }
@@ -667,12 +708,17 @@ function Invoke-LegendDoubleClick([int]$sx, [int]$sy) {
     $x = $sx - [int]$pos[0]
     $y = $sy - [int]$pos[1]
     $hit = Find-Hit $script:legendHits $x $y
-    if (-not $hit) { return }
+    if (-not $hit) {
+        Write-Log ('dblclick: no hit at ' + $x + ',' + $y + ' (hits=' + @($script:legendHits).Count + ') ' + ($script:legendHits | ConvertTo-Json -Compress))
+        return
+    }
+    Write-Log ('dblclick: ' + $hit.kind + ' ' + $hit.id)
 
     if ($hit.kind -eq 'swatch') {
         $picked = Invoke-ScreenPick
         if (-not $picked.cancelled -and $picked.hex) {
             $script:pendingCommand = @{ target = 'legend'; action = 'color'; id = [string]$hit.id; value = [string]$picked.hex }
+            Write-Log ('dblclick: colour ' + $picked.hex + ' for ' + $hit.id)
         }
         return
     }
@@ -898,7 +944,7 @@ $timer.Add_Tick({
         try {
             Invoke-LegendDoubleClick ([int]$point.x) ([int]$point.y)
         } catch {
-            # a bad hit must never stop the helper
+            Write-Log ('dblclick error: ' + $_.Exception.Message)
         }
     }
     # idle exit: half an hour without traffic
