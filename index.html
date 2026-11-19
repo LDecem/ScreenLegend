@@ -1384,11 +1384,13 @@ body.pip-body.no-fit #pip-root {
   var pasteImageReady = false;
   var pastePromptActive = false;
   var pastePromptCallback = null;
-  var helperReady = false;
+  var helperReady = false;   // local helper reachable? decides the picker flavour
 
   var hasEyeDropper = typeof window.EyeDropper === 'function';
   var hasPip = !!(window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function');
 
+  /* The helper's native picker is preferred (it cancels on right click and can
+     step the editor aside); the EyeDropper is the browser-only fallback. */
   function canScreenPick() {
     return helperReady || hasEyeDropper;
   }
@@ -1910,6 +1912,9 @@ body.pip-body.no-fit #pip-root {
     saveState();
   }
 
+  /* Every picker path resolves to a hex string, or rejects with AbortError when
+     the user cancelled. A cancelled pick must leave the row count and the colour
+     untouched, so the AbortError branch returns before touching state. */
   function pickAndAdd() {
     if (!canScreenPick()) {
       armPastePick(defaultPasteAdd);
@@ -1999,6 +2004,7 @@ body.pip-body.no-fit #pip-root {
   }
 
   function imageFileFromClipboard(e) {
+    /* A pasted image arrives either as a clipboard file item or in files[]. */
     var dt = e.clipboardData;
     if (!dt) return null;
     var items = dt.items || [];
@@ -2015,6 +2021,9 @@ body.pip-body.no-fit #pip-root {
     return null;
   }
 
+  /* Two ways into the paste picker:
+       armPastePick   - show the top bar and wait for Ctrl+V (no picker at all)
+       openPastePicker- show the modal dialog, optionally with an image already */
   function openPastePicker(callback, file) {
     pastePickCallback = callback || null;
     resetPastePicker();
@@ -2088,6 +2097,8 @@ body.pip-body.no-fit #pip-root {
   }
 
   function pasteSampleAt(e) {
+    /* The canvas may be displayed smaller than its bitmap, so map the CSS
+       coordinates back to source pixels before reading the colour. */
     if (!pasteImageReady || !pasteCanvas || pasteCanvas.hidden) return null;
     var rect = pasteCanvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
@@ -2140,6 +2151,8 @@ body.pip-body.no-fit #pip-root {
     }).then(function (info) {
       if (!info || !info.ok) throw new Error('pick unavailable');
       if (info.cancelled) {
+        /* The user pressed right-click or Esc: same contract as an EyeDropper
+           cancel, so callers just leave the current colour alone. */
         var err = new Error('pick cancelled');
         err.name = 'AbortError';
         throw err;
@@ -2156,6 +2169,9 @@ body.pip-body.no-fit #pip-root {
     });
   }
 
+  /* Local helper first (right-click cancel, editor steps aside), then the
+     browser EyeDropper for pages opened without the helper. If the helper dies
+     mid-flight the failure is not fatal: demote it and try the browser picker. */
   function pickFromScreen() {
     if (helperReady) {
       return helperPick().catch(function (err) {
@@ -2187,6 +2203,9 @@ body.pip-body.no-fit #pip-root {
       if (ready !== helperReady) {
         helperReady = ready;
         updateSupportUI();
+        /* The empty state and the swatch tooltips mention the picker, so rebuild
+           them when the capability changes (probe usually resolves before the
+           user interacts). */
         renderRows();
       }
       if (!ready) scheduleHelperProbe();
@@ -2265,6 +2284,9 @@ body.pip-body.no-fit #pip-root {
     g.restore();
   }
 
+  /* Render a legend card to a canvas. When hitSink is given it receives
+     { kind, id, x, y, w, h, text } rectangles in image pixels for the title,
+     every swatch and every label (used by double-click editing). */
   function renderToCanvas(s, scale, backgroundOpacity, hitSink) {
     var m = metrics(s);
     var o = s.options;
@@ -2719,6 +2741,10 @@ body.pip-body.no-fit #pip-root {
     return 'http://127.0.0.1:' + BRIDGE_PORT + path;
   }
 
+  /* Render the card at screen resolution for the helper. Besides the PNG this
+     returns the swatch / label / title rectangles (in image pixels) so a double
+     click on the floating card can be mapped back to an item without reopening
+     the editor. */
   function overlayPngBase64() {
     var opts = {};
     for (var k in state.options) {
@@ -2824,6 +2850,12 @@ body.pip-body.no-fit #pip-root {
     }, 120);
   }
 
+  /* Commands produced by the floating card itself (its context menu or an
+     in-place edit). Shape: { target: 'legend'|'compass', action, id?, value }.
+     legend: showTitle | columns | opacity | color | label | title
+     compass: style | angle | opacity
+     Everything is applied to the same state the editor edits, then re-rendered
+     so the card repaints with the new value. */
   function applyBridgeCommand(cmd) {
     if (!cmd || !cmd.target) return;
     if (cmd.target === 'legend') {

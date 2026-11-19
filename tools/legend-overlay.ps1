@@ -56,8 +56,6 @@ public class SLOverlay {
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
-    [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
-    [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
 
     public struct POINT { public int X; public int Y; }
     public struct SIZE { public int cx; public int cy; }
@@ -65,6 +63,10 @@ public class SLOverlay {
     public struct BLENDFUNCTION { public byte BlendOp; public byte BlendFlags; public byte SourceConstantAlpha; public byte AlphaFormat; }
 }
 
+/* Layered overlay window: the whole card is a drag handle, right click opens
+   the quick-settings menu, a double click is reported so the card can be edited
+   in place. A caption double click must never reach DefWindowProc, which would
+   maximise the window and make the card jump to the top-left corner. */
 public class SLOverlayWindow : NativeWindow {
     public Action RightClicked;
     public Action<int, int> DoubleClicked;
@@ -97,9 +99,11 @@ public class SLOverlayWindow : NativeWindow {
 
 /* Full-screen colour picker. The screen is captured before the window appears,
    so neither the editor window nor the picker itself ends up in the sample.
-   Left click picks, right click or Esc cancels. */
+   Left click picks, right click or Esc cancels. A press and its release are
+   matched, so a release left over from the double click that opened the picker
+   can never pick a colour or close it. */
 public class SLPicker : Form {
-    public Bitmap Shot;
+    public Bitmap Shot;                     // frozen screen, one pixel per screen pixel
     public bool Cancelled = true;
     public Color Picked = Color.Black;
 
@@ -109,12 +113,12 @@ public class SLPicker : Form {
     static readonly Font InfoFont = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Regular);
     static readonly Font HintFont = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
 
-    int mx = -1;
+    int mx = -1;                            // cursor position, -1 before the first move
     int my = -1;
     bool done = false;
     bool leftDown = false;
     bool rightDown = false;
-    Rectangle lastLoupe = Rectangle.Empty;
+    Rectangle lastLoupe = Rectangle.Empty;  // repaint only what changed while moving
     Rectangle lastInfo = Rectangle.Empty;
 
     public SLPicker() {
@@ -505,7 +509,11 @@ function Current-Position($win) {
     return @($r.L, $r.T)
 }
 
-function Show-Overlay($win, [System.Drawing.Bitmap]$bmp, [bool]$reposition, [string]$anchor) {
+# Place and paint a card. The first show anchors it to the corner named by
+# $anchor; later repaints keep the user's position (the card may change size
+# when title/columns/opacity are edited from its context menu) and only clamp
+# it back on screen.
+function Show-Overlay($win, [System.Drawing.Bitmap]$bmp, [string]$anchor) {
     $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
     if (-not $win.Showing) {
         $x = $wa.Right - $bmp.Width - 24
@@ -541,6 +549,17 @@ function Hide-Overlay($win) {
     $win.Form.Hide()
 }
 
+# ---------------------------------------------------------------- shared state
+# editorHwnd : result of Find-EditorWindow. It lives in the script scope because
+#              the EnumWindows callback runs from .NET, outside the function's
+#              own scope, so a local variable could not be written there.
+# picking          : a modal picker/edit window is open; suppress nested ticks
+# legendMenuState  : last menu payload from the page (checked items)
+# compassMenuState : same for the compass menu
+# pendingCommand   : one-shot command returned by /state and applied by the page
+# legendHits       : swatch/label/title rectangles in card pixels, for double clicks
+# legendDoubleClick: screen point of a pending double click, handled on the next tick
+# textEditResult   : result of the small in-place text editor
 $script:editorHwnd = [IntPtr]::Zero
 $script:picking = $false
 $script:legendMenuState = @{ showTitle = $true; columns = 1; opacity = 100 }
@@ -552,7 +571,7 @@ $script:textEditResult = $null
 
 # The editor is a browser window. Find it by its page title and Chromium class
 # so the picker can step out of the way without depending on which window is
-# foreground.
+# foreground. Returns IntPtr.Zero when the editor cannot be identified.
 function Find-EditorWindow {
     $script:editorHwnd = [IntPtr]::Zero
     [SLOverlay]::EnumWindows({
@@ -743,6 +762,11 @@ function Invoke-LegendDoubleClick([int]$sx, [int]$sy) {
     }
 }
 
+# ---------------------------------------------------------------- context menus
+# Native WinForms menus shown on right click. The page owns the real state, so
+# the menu only mirrors the last payload it sent and queues the chosen value as
+# a command for the page to apply. "Close" acts on the window directly.
+
 function Show-LegendMenu {
     $state = $script:legendMenuState
     $showTitle = $true
@@ -863,11 +887,9 @@ $timer.Add_Tick({
         $client = $listener.AcceptTcpClient()
         try {
             $req = Read-Request $client
-            $method = 'GET'
             $path = '/'
-            if ($req.Head -match '^(\w+)\s+(\S+)') {
-                $method = $Matches[1]
-                $path = $Matches[2]
+            if ($req.Head -match '^\w+\s+(\S+)') {
+                $path = $Matches[1]
             }
             $reply = '{"ok":true}'
             if ($path -like '/state*') {
@@ -877,6 +899,8 @@ $timer.Add_Tick({
                 $script:pendingCommand = $null
                 $reply = '{"ok":true,"showing":' + $legendOn + ',"legend":' + $legendOn + ',"compass":' + $compassOn + ',"command":' + $cmdJson + '}'
             } elseif ($path -like '/pick*') {
+                # Native full-screen picker, used by the toolbar button and by
+                # double-clicking a swatch. It is modal and blocks this tick.
                 $picked = Invoke-ScreenPick
                 if ($picked.busy) {
                     $reply = '{"ok":false,"busy":true,"cancelled":true}'
@@ -897,6 +921,8 @@ $timer.Add_Tick({
                 $reply = '{"ok":true,"showing":false,"legend":false}'
             } elseif ($path -like '/legend*' -and $req.Body) {
                 $data = $req.Body | ConvertFrom-Json
+                # menu: checked items for the next context menu
+                # hits: swatch / label / title rectangles in card pixels
                 if ($data.menu) { $script:legendMenuState = $data.menu }
                 if ($null -ne $data.hits) { $script:legendHits = @($data.hits) }
                 if ($data.show -eq $false) {
@@ -907,8 +933,7 @@ $timer.Add_Tick({
                     $raw = [System.Convert]::FromBase64String($data.png)
                     $ms = New-Object System.IO.MemoryStream(, $raw)
                     $bmp = [System.Drawing.Bitmap]::FromStream($ms)
-                    $changed = ($script:legendWin.W -eq 0) -or ($bmp.Width -ne $script:legendWin.W) -or ($bmp.Height -ne $script:legendWin.H)
-                    Show-Overlay $script:legendWin $bmp $changed 'bottom-right'
+                    Show-Overlay $script:legendWin $bmp 'bottom-right'
                     $reply = '{"ok":true,"showing":true,"w":' + $script:legendWin.W + ',"h":' + $script:legendWin.H + '}'
                     $bmp.Dispose()
                     $ms.Dispose()
@@ -923,8 +948,7 @@ $timer.Add_Tick({
                     $raw = [System.Convert]::FromBase64String($data.png)
                     $ms = New-Object System.IO.MemoryStream(, $raw)
                     $bmp = [System.Drawing.Bitmap]::FromStream($ms)
-                    $changed = ($script:compassWin.W -eq 0) -or ($bmp.Width -ne $script:compassWin.W) -or ($bmp.Height -ne $script:compassWin.H)
-                    Show-Overlay $script:compassWin $bmp $changed 'top-right'
+                    Show-Overlay $script:compassWin $bmp 'top-right'
                     $reply = '{"ok":true,"compass":true,"w":' + $script:compassWin.W + ',"h":' + $script:compassWin.H + '}'
                     $bmp.Dispose()
                     $ms.Dispose()
