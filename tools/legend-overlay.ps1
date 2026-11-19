@@ -66,6 +66,7 @@ public class SLOverlay {
 
 public class SLOverlayWindow : NativeWindow {
     public Action RightClicked;
+    public Action<int, int> DoubleClicked;
 
     protected override void WndProc(ref Message m) {
         if (m.Msg == 0x0084) {              // WM_NCHITTEST
@@ -78,6 +79,17 @@ public class SLOverlayWindow : NativeWindow {
             if (RightClicked != null) RightClicked();
             return;
         }
+        /* A double click on a caption normally maximises the window; on a
+           layered overlay that looks like it teleports to the top-left corner.
+           Report it instead, so the card can be edited in place. */
+        if (m.Msg == 0x00A3) {                      // WM_NCLBUTTONDBLCLK (screen coords)
+            if (DoubleClicked != null) {
+                long lp = m.LParam.ToInt64();
+                DoubleClicked((short)(lp & 0xFFFF), (short)((lp >> 16) & 0xFFFF));
+            }
+            return;
+        }
+        if (m.Msg == 0x0203) { return; }            // WM_LBUTTONDBLCLK (client coords)
         base.WndProc(ref m);
     }
 }
@@ -99,6 +111,9 @@ public class SLPicker : Form {
     int mx = -1;
     int my = -1;
     bool done = false;
+    bool rightDown = false;
+    Rectangle lastLoupe = Rectangle.Empty;
+    Rectangle lastInfo = Rectangle.Empty;
 
     public SLPicker() {
         AutoScaleMode = AutoScaleMode.None;
@@ -135,11 +150,41 @@ public class SLPicker : Form {
         return new Rectangle(x, y, size, size);
     }
 
-    void InvalidateAt(int x, int y) {
+    Rectangle InfoRect() {
+        Rectangle loupe = LoupeRect();
+        int w = 252;
+        int h = 54;
+        /* Keep the readout away from the pixel under the cursor: above the
+           loupe first, then beside it. It must never hide the aim point. */
+        Rectangle[] tries = new Rectangle[] {
+            new Rectangle(loupe.X, loupe.Y - h - 8, w, h),
+            new Rectangle(loupe.X - w - 8, loupe.Y, w, h),
+            new Rectangle(loupe.Right + 8, loupe.Y, w, h),
+            new Rectangle(loupe.X, loupe.Bottom + 8, w, h)
+        };
+        for (int i = 0; i < tries.Length; i++) {
+            Rectangle r = tries[i];
+            if (r.X < 8 || r.Y < 8 || r.Right > ClientSize.Width - 8 || r.Bottom > ClientSize.Height - 8) continue;
+            if (r.Contains(mx, my)) continue;
+            return r;
+        }
+        Rectangle box = tries[3];
+        box.X = Math.Max(8, Math.Min(ClientSize.Width - w - 8, box.X));
+        box.Y = Math.Max(8, Math.Min(ClientSize.Height - h - 8, box.Y));
+        return box;
+    }
+
+    void InvalidateAt(int x, int y, Rectangle loupe, Rectangle info) {
         if (x < 0) return;
-        Invalidate(new Rectangle(x - 240, y - 240, 480, 480));
-        Invalidate(new Rectangle(0, y, ClientSize.Width, 2));
-        Invalidate(new Rectangle(x, 0, 2, ClientSize.Height));
+        Invalidate(loupe);
+        Invalidate(info);
+        Invalidate(new Rectangle(0, y - 1, ClientSize.Width, 3));
+        Invalidate(new Rectangle(x - 1, 0, 3, ClientSize.Height));
+    }
+
+    protected override void WndProc(ref Message m) {
+        if (m.Msg == 0x007B) return;   // WM_CONTEXTMENU: never show one here
+        base.WndProc(ref m);
     }
 
     protected override void OnPaint(PaintEventArgs e) {
@@ -186,17 +231,7 @@ public class SLPicker : Form {
     }
 
     void DrawInfo(Graphics g) {
-        Rectangle loupe = LoupeRect();
-        int w = 252;
-        int h = 54;
-        int x = loupe.X;
-        if (x + w > ClientSize.Width - 8) x = ClientSize.Width - w - 8;
-        if (x < 8) x = 8;
-        int y = loupe.Bottom + 8;
-        if (y + h > ClientSize.Height - 8) y = loupe.Top - h - 8;
-        if (y < 8) y = loupe.Bottom + 8;
-        Rectangle box = new Rectangle(x, y, w, h);
-
+        Rectangle box = InfoRect();
         Color c = Color.Black;
         if (mx >= 0 && my >= 0 && mx < Shot.Width && my < Shot.Height) c = Shot.GetPixel(mx, my);
 
@@ -238,10 +273,15 @@ public class SLPicker : Form {
 
     protected override void OnMouseMove(MouseEventArgs e) {
         base.OnMouseMove(e);
-        InvalidateAt(mx, my);
+        int ox = mx, oy = my;
         mx = e.X;
         my = e.Y;
-        InvalidateAt(mx, my);
+        Rectangle loupe = LoupeRect();
+        Rectangle info = InfoRect();
+        if (ox >= 0) InvalidateAt(ox, oy, lastLoupe, lastInfo);
+        InvalidateAt(mx, my, loupe, info);
+        lastLoupe = loupe;
+        lastInfo = info;
     }
 
     protected override void OnMouseDown(MouseEventArgs e) {
@@ -249,8 +289,25 @@ public class SLPicker : Form {
         if (e.Button == MouseButtons.Left) {
             mx = e.X;
             my = e.Y;
-            Finish(true);
+            lastLoupe = LoupeRect();
+            lastInfo = InfoRect();
+            Invalidate();
         } else if (e.Button == MouseButtons.Right) {
+            rightDown = true;
+        }
+    }
+
+    /* Finish on button-up, not button-down: the picker is still the window under
+       the cursor when the release happens, so the click (and the context menu a
+       right release would otherwise open) never reaches the app underneath. */
+    protected override void OnMouseUp(MouseEventArgs e) {
+        base.OnMouseUp(e);
+        if (e.Button == MouseButtons.Left) {
+            mx = e.X;
+            my = e.Y;
+            Finish(true);
+        } else if (e.Button == MouseButtons.Right && rightDown) {
+            rightDown = false;
             Finish(false);
         }
     }
@@ -380,6 +437,7 @@ function New-OverlayWindow([string]$title) {
 $script:legendWin = New-OverlayWindow 'ScreenLegendOverlay'
 $script:compassWin = New-OverlayWindow 'ScreenLegendCompass'
 $script:legendWin.Hit.RightClicked = { Show-LegendMenu }
+$script:legendWin.Hit.DoubleClicked = { param($sx, $sy) $script:legendDoubleClick = @{ x = $sx; y = $sy } }
 $script:compassWin.Hit.RightClicked = { Show-CompassMenu }
 
 function Paint-Overlay($win, [System.Drawing.Bitmap]$bmp, [int]$x, [int]$y) {
@@ -460,6 +518,9 @@ $script:picking = $false
 $script:legendMenuState = @{ showTitle = $true; columns = 1; opacity = 100 }
 $script:compassMenuState = @{ style = 'needle'; angle = 0; opacity = 100 }
 $script:pendingCommand = $null
+$script:legendHits = @()
+$script:legendDoubleClick = $null
+$script:textEditResult = $null
 
 # The editor is a browser window. Find it by its page title and Chromium class
 # so the picker can step out of the way without depending on which window is
@@ -535,6 +596,105 @@ function Invoke-ScreenPick {
 
 function Set-MenuCommand($target, $action, $value) {
     $script:pendingCommand = @{ target = $target; action = $action; value = $value }
+}
+
+# ---------------------------------------------------------------- in-place edit
+# The editor sends the pixel rectangles of its swatches, labels and title along
+# with each PNG. A double click on the card can then be mapped back to an item
+# without reopening the editor: swatches start the colour picker, labels and the
+# title open a small text box over the card.
+
+function Find-Hit($hits, [int]$x, [int]$y) {
+    foreach ($h in $hits) {
+        $hx = [int]$h.x
+        $hy = [int]$h.y
+        $hw = [int]$h.w
+        $hh = [int]$h.h
+        if ($x -ge $hx -and $x -lt ($hx + $hw) -and $y -ge $hy -and $y -lt ($hy + $hh)) { return $h }
+    }
+    return $null
+}
+
+function Show-TextEditor([string]$text, [int]$x, [int]$y, [int]$w, [int]$h) {
+    $form = New-Object System.Windows.Forms.Form
+    $form.FormBorderStyle = 'None'
+    $form.StartPosition = 'Manual'
+    $form.TopMost = $true
+    $form.ShowInTaskbar = $false
+    $form.BackColor = [System.Drawing.Color]::FromArgb(37, 99, 235)
+    $form.Padding = New-Object System.Windows.Forms.Padding(1)
+    $form.Width = $w
+    $form.Height = $h
+    $form.Location = New-Object System.Drawing.Point($x, $y)
+
+    $box = New-Object System.Windows.Forms.TextBox
+    $box.BorderStyle = 'None'
+    $box.Dock = 'Fill'
+    $box.Text = $text
+    $box.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10.5)
+    $form.Controls.Add($box)
+    # handlers must not rely on local variables: a delegate may run outside this
+    # function's scope, so use $this / $sender instead
+    $form.Add_Shown({
+        $tb = $this.Controls[0]
+        if ($tb) {
+            [void]$tb.Focus()
+            $tb.SelectAll()
+        }
+    })
+    $box.Add_KeyDown({
+        param($sender, $e)
+        if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+            $script:textEditResult = $sender.Text
+            $e.SuppressKeyPress = $true
+            $sender.FindForm().DialogResult = [System.Windows.Forms.DialogResult]::OK
+        } elseif ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+            $script:textEditResult = $null
+            $e.SuppressKeyPress = $true
+            $sender.FindForm().DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+        }
+    })
+
+    $script:textEditResult = $null
+    [void]$form.ShowDialog()
+    $form.Dispose()
+    return $script:textEditResult
+}
+
+function Invoke-LegendDoubleClick([int]$sx, [int]$sy) {
+    if (-not $script:legendWin.Showing) { return }
+    $pos = Current-Position $script:legendWin
+    $x = $sx - [int]$pos[0]
+    $y = $sy - [int]$pos[1]
+    $hit = Find-Hit $script:legendHits $x $y
+    if (-not $hit) { return }
+
+    if ($hit.kind -eq 'swatch') {
+        $picked = Invoke-ScreenPick
+        if (-not $picked.cancelled -and $picked.hex) {
+            $script:pendingCommand = @{ target = 'legend'; action = 'color'; id = [string]$hit.id; value = [string]$picked.hex }
+        }
+        return
+    }
+    if ($hit.kind -eq 'title' -or $hit.kind -eq 'label') {
+        $w = [Math]::Max(180, [int]$hit.w + 24)
+        $h = [Math]::Max(30, [int]$hit.h + 10)
+        $wa = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+        $ex = $pos[0] + [int]$hit.x
+        $ey = $pos[1] + [int]$hit.y
+        if ($ex + $w -gt $wa.Right - 8) { $ex = $wa.Right - $w - 8 }
+        if ($ex -lt $wa.Left + 8) { $ex = $wa.Left + 8 }
+        if ($ey + $h -gt $wa.Bottom - 8) { $ey = $wa.Bottom - $h - 8 }
+        if ($ey -lt $wa.Top + 8) { $ey = $wa.Top + 8 }
+        $text = Show-TextEditor ([string]$hit.text) $ex $ey $w $h
+        if ($null -ne $text) {
+            if ($hit.kind -eq 'title') {
+                $script:pendingCommand = @{ target = 'legend'; action = 'title'; value = [string]$text }
+            } else {
+                $script:pendingCommand = @{ target = 'legend'; action = 'label'; id = [string]$hit.id; value = [string]$text }
+            }
+        }
+    }
 }
 
 function Show-LegendMenu {
@@ -692,8 +852,10 @@ $timer.Add_Tick({
             } elseif ($path -like '/legend*' -and $req.Body) {
                 $data = $req.Body | ConvertFrom-Json
                 if ($data.menu) { $script:legendMenuState = $data.menu }
+                if ($null -ne $data.hits) { $script:legendHits = @($data.hits) }
                 if ($data.show -eq $false) {
                     Hide-Overlay $script:legendWin
+                    $script:legendHits = @()
                     $reply = '{"ok":true,"showing":false}'
                 } elseif ($data.png) {
                     $raw = [System.Convert]::FromBase64String($data.png)
@@ -728,6 +890,15 @@ $timer.Add_Tick({
             # ignore malformed requests, keep serving
         } finally {
             $client.Close()
+        }
+    }
+    if ($script:legendDoubleClick) {
+        $point = $script:legendDoubleClick
+        $script:legendDoubleClick = $null
+        try {
+            Invoke-LegendDoubleClick ([int]$point.x) ([int]$point.y)
+        } catch {
+            # a bad hit must never stop the helper
         }
     }
     # idle exit: half an hour without traffic

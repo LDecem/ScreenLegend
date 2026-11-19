@@ -889,7 +889,7 @@ body.pip-body.no-fit #pip-root {
     <p class="note">
       左侧分为「图例」和「罗盘」两个设置页，点标签切换。顶部的<strong>浮动图例</strong> / <strong>浮动罗盘</strong>按钮始终可见，可以随时开/关两扇独立窗口。罗盘页可选指针 / 刻度 / 玫瑰，浅色 / 深色 / 透明卡片，并可调底色不透明度、角度（0° 为正北）和大小；罗盘与图例可同时显示、分别拖动，右键各自打开快捷设置（样式 / 角度 / 背景不透明度 / 关闭）。</p>
     <p class="note">
-      图例和罗盘配置会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动，右键打开快捷设置（显示标题 / 列数 / 背景不透明度 / 关闭），尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗背景不透明度」只改背景，文字和符号保持不透明，也不影响导出的 PNG。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
+      图例和罗盘配置会自动保存在本机浏览器，不会上传。浮窗由 <code>启动.bat</code> 启动的后台小程序绘制：整块区域都能拖动，右键打开快捷设置（显示标题 / 列数 / 背景不透明度 / 关闭）；双击色块可直接取色，双击名称或标题可原地改名（回车确认，<kbd>Esc</kbd> 取消）。尺寸与导出 PNG 1:1 对应，所以不会模糊；「浮窗背景不透明度」只改背景，文字和符号保持不透明，也不影响导出的 PNG。独占全屏程序、远程桌面或虚拟机可能盖住置顶窗口，请把地图软件设为窗口化或无边框全屏。直接打开 <code>index.html</code> 时小程序没在运行，会退回浏览器画中画窗口。</p>
     <div class="dialog-foot">
       <button class="btn primary" id="helpOkBtn" type="button">知道了</button>
     </div>
@@ -2265,7 +2265,7 @@ body.pip-body.no-fit #pip-root {
     g.restore();
   }
 
-  function renderToCanvas(s, scale, backgroundOpacity) {
+  function renderToCanvas(s, scale, backgroundOpacity, hitSink) {
     var m = metrics(s);
     var o = s.options;
     var n = s.items.length;
@@ -2321,6 +2321,13 @@ body.pip-body.no-fit #pip-root {
       g.fillStyle = o.textColor;
       g.font = '600 ' + m.titleSize + 'px ' + FONT_STACK;
       g.fillText(s.title, m.pad, y + (m.titleSize * 1.3) / 2);
+      if (hitSink) {
+        hitSink.push({
+          kind: 'title', id: '', text: s.title,
+          x: Math.round((m.pad - 3) * safeScale), y: Math.round(y * safeScale),
+          w: Math.round((titleW + 6) * safeScale), h: Math.round(m.titleH * safeScale)
+        });
+      }
       y += m.titleH;
     }
 
@@ -2338,6 +2345,21 @@ body.pip-body.no-fit #pip-root {
         g.fillStyle = o.textColor;
         g.font = '400 ' + m.labelSize + 'px ' + FONT_STACK;
         g.fillText(it.label || '未命名', x + m.symbolW + ITEM_GAP, rowY + m.rowH / 2);
+        if (hitSink) {
+          var labelW = measure.measureText(it.label || '未命名').width;
+          hitSink.push({
+            kind: 'swatch', id: it.id, text: '',
+            x: Math.round(symX * safeScale), y: Math.round(swY * safeScale),
+            w: Math.round(symW * safeScale), h: Math.round(m.swatch * safeScale)
+          });
+          hitSink.push({
+            kind: 'label', id: it.id, text: it.label || '',
+            x: Math.round((x + m.symbolW + ITEM_GAP - 2) * safeScale),
+            y: Math.round(rowY * safeScale),
+            w: Math.round((labelW + 6) * safeScale),
+            h: Math.round(m.rowH * safeScale)
+          });
+        }
       }
       x += colWidths[col] + m.colGap;
     }
@@ -2704,12 +2726,13 @@ body.pip-body.no-fit #pip-root {
     }
     /* 1 image pixel = 1 screen pixel, so the overlay is perfectly sharp at any DPI */
     var scale = Math.max(1, window.devicePixelRatio || 1);
+    var hits = [];
     var cnv = renderToCanvas({
       title: state.title,
       showTitle: state.showTitle,
       items: state.items,
       options: opts
-    }, scale, state.options.floatOpacity);
+    }, scale, state.options.floatOpacity, hits);
     /* Windows ignores mouse input over fully transparent pixels of a layered
        window, so an alpha=0 background could not be used to drag the card.
        Lift those pixels to alpha=1: invisible to the eye, but grabbable.
@@ -2723,13 +2746,15 @@ body.pip-body.no-fit #pip-root {
     }
     g.putImageData(img, 0, 0);
     var url = cnv.toDataURL('image/png');
-    return url.slice(url.indexOf(',') + 1);
+    return { png: url.slice(url.indexOf(',') + 1), hits: hits };
   }
 
   function postOverlay(show) {
     var payload = { show: show };
     if (show) {
-      payload.png = overlayPngBase64();
+      var shot = overlayPngBase64();
+      payload.png = shot.png;
+      payload.hits = shot.hits;
       payload.menu = {
         showTitle: state.showTitle,
         columns: state.options.columns,
@@ -2808,6 +2833,19 @@ body.pip-body.no-fit #pip-root {
         state.options.columns = clampInt(cmd.value, 1, 4, state.options.columns);
       } else if (cmd.action === 'opacity') {
         state.options.floatOpacity = clampInt(Math.round(Number(cmd.value)), 0, 100, 100) / 100;
+      } else if (cmd.action === 'color' && cmd.id) {
+        var colorItem = findItem(cmd.id);
+        var colorHex = normalizeHex(cmd.value);
+        if (!colorItem || !colorHex) return;
+        setPrimaryColor(colorItem, colorHex);
+        renderRows();
+      } else if (cmd.action === 'label' && cmd.id) {
+        var labelItem = findItem(cmd.id);
+        if (!labelItem) return;
+        labelItem.label = String(cmd.value == null ? '' : cmd.value);
+        renderRows();
+      } else if (cmd.action === 'title') {
+        state.title = String(cmd.value == null ? '' : cmd.value);
       } else {
         return;
       }
